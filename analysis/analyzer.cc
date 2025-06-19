@@ -1,0 +1,315 @@
+#include "../include/DataIO.h"
+#include "../include/WaveformProcessor.h"
+#include "../include/EventAnalyzer.h"
+#include "../include/Config.h"
+#include <iostream>
+#include <string>
+#include <vector>
+#include <map>
+#include <fstream>
+#include <sstream>
+#include "TH1F.h"
+#include "TH2F.h"
+#include "TString.h"
+#include "TFile.h"
+#include "TSystem.h"
+
+using namespace HRPPD;
+
+// Default configuration file path
+const std::string DEFAULT_CONFIG_FILE = "../config/config.txt";
+
+// Common IO setup function
+bool setupIO(DataIO& dataIO, const int runNumber, const int channelNumber, 
+             const std::string& outputSuffix, std::string& outputFileName) {
+
+    outputFileName = Form("%s/run%d/%s_Run_%d.root", 
+                         CONFIG_OUTPUT_PATH.c_str(), runNumber, outputSuffix.c_str(), runNumber);
+    
+    dataIO.SetOutputPath(CONFIG_OUTPUT_PATH);
+    
+    if (!dataIO.OpenInputFileByRun(runNumber, channelNumber, true)) {
+        std::cerr << "Failed to open file: Run " << runNumber << ", Channel " << channelNumber << std::endl;
+        return false;
+    }
+    
+    if (!dataIO.CreateOutputFile(outputFileName)) {
+        std::cerr << "Failed to create output file: " << outputFileName << std::endl;
+        dataIO.CloseInputFile();
+        return false;
+    }
+    
+    return true;
+}
+
+
+void analyzer(const int runNumber, const int channelNumber = 10, const int maxEvents = -1, 
+              const std::string& configFile = DEFAULT_CONFIG_FILE, bool processAll = true,
+              bool doWaveform = false, bool doWaveform2D = false, bool doToT = false,
+              bool doTiming = false, bool doAmplitude = false, bool doNpe = false) {
+
+    DataIO dataIO;
+    WaveformProcessor processor;
+    EventAnalyzer analyzer;
+    
+    if (!LoadConfig(configFile)) {
+        std::cerr << "Failed to load config file, proceeding with default values." << std::endl;
+    }
+    
+    // Set parameters
+    processor.m_calibrationConstant = CONFIG_CALIBRATION_CONSTANT;
+    processor.m_deltaT = CONFIG_DELTA_T;
+    processor.m_samplingRate = CONFIG_SAMPLING_RATE;
+    analyzer.m_triggerCfdFraction = CONFIG_TRIGGER_CFD_FRACTION;
+    analyzer.m_triggerCfdDelay = CONFIG_TRIGGER_CFD_DELAY;
+    analyzer.m_mcpCfdFraction = CONFIG_MCP_CFD_FRACTION;
+    analyzer.m_mcpCfdDelay = CONFIG_MCP_CFD_DELAY;
+    analyzer.m_triggerWindowMin = CONFIG_TRIGGER_WINDOW_MIN;
+    analyzer.m_triggerWindowMax = CONFIG_TRIGGER_WINDOW_MAX;
+    analyzer.m_mcpWindowMin = CONFIG_MCP_WINDOW_MIN;
+    analyzer.m_mcpWindowMax = CONFIG_MCP_WINDOW_MAX;
+    analyzer.m_fftCutoffFrequency = CONFIG_FFT_CUTOFF_FREQUENCY;
+    analyzer.m_applyFFTFilter = CONFIG_APPLY_FFT_FILTER;
+
+    if (processAll) {
+        doWaveform = doWaveform2D = doToT = doTiming = doAmplitude = doNpe = true;
+    } else {
+        if (!doWaveform && !doWaveform2D && !doToT && !doTiming && !doAmplitude && !doNpe) {
+            doWaveform = CONFIG_DO_WAVEFORM;
+            doWaveform2D = CONFIG_DO_WAVEFORM2D;
+            doToT = CONFIG_DO_TOT;
+            doTiming = CONFIG_DO_TIMING;
+            doAmplitude = CONFIG_DO_AMPLITUDE;
+            doNpe = CONFIG_DO_NPE;
+        }
+    }
+    
+    gSystem->mkdir(CONFIG_OUTPUT_PATH.c_str(), true);
+    gSystem->mkdir(Form("%s/run%d", CONFIG_OUTPUT_PATH.c_str(), runNumber), true);
+    
+    std::cout << "=== Starting analysis for Run " << runNumber << ", Ch " << channelNumber << " ===" << std::endl;
+    
+    std::string outputFileName;
+    if (!setupIO(dataIO, runNumber, channelNumber, "Analysis", outputFileName)) {
+        std::cerr << "IO setup failed. Aborting analysis." << std::endl;
+        return;
+    }
+    
+    if (doWaveform) {
+        dataIO.CreateDirectory("Waveforms_Trig");
+        dataIO.CreateDirectory("Waveforms_MCP");
+        // dataIO.CreateDirectory("Waveforms_MCP_filtered");
+        dataIO.CreateDirectory("CFD_Trig");
+        dataIO.CreateDirectory("CFD_MCP");
+    }
+    
+    // Declare histograms
+    TH2F* hTrig2D = nullptr;
+    TH2F* hMCP2D = nullptr;
+    if (doWaveform2D) {
+        hTrig2D = new TH2F("Waveform_2D_Trig", "Trigger Waveforms 2D;Time [ns];Amplitude [mV]", 1000, 0., 200., 4000, -1000., 1000.);
+        hMCP2D = new TH2F("Waveform_2D_MCP", "MCP Waveforms 2D;Time [ns];Amplitude [mV]", 1000, 0., 200., 4000, -1000., 1000.);
+    }
+
+    TH2F* hToT = nullptr;
+    if (doToT) {
+        hToT = new TH2F("ToT", "ToT;Amplitude [mV];Time [ps]", 100, 0., 60., 40, 0., 8000.);
+    }
+    
+    // Timing histograms
+    TH1F* hTrigTiming = nullptr;
+    TH1F* hMCPTiming = nullptr;
+    TH1F* hDiffTiming = nullptr;
+    if (doTiming) {
+        hTrigTiming = new TH1F("Timing_Trig", "Trigger Timing;Time [ps];Counts", 1000, 0., 120000.);
+        hMCPTiming = new TH1F("Timing_MCP", "MCP Timing;Time [ps];Counts", 1000, 20000., 240000.);
+        hDiffTiming = new TH1F("Timing_Diff", "Timing Resolution;Time [ps];Counts", 1000, 50000., 80000.);
+    }
+    
+    // Amplitude histogram
+    TH1F* hAmp = nullptr;
+    if (doAmplitude) {
+        hAmp = new TH1F("Amplitude", "MCP Amplitude;Amplitude [mV];Counts", 1000, 0., 100.);
+    }
+    
+    // Npe histogram
+    TH1F* hNpe = nullptr;
+    if (doNpe) {
+        hNpe = new TH1F("Npe", "Number of Photoelectrons;Npe;Counts", 1000, 0., 10000000.);
+    }
+    
+    analyzer.Initialize();
+    
+
+    // Event loop
+    int totalEvents = dataIO.GetTotalEvents();
+    int processEvents = (maxEvents < 0) ? totalEvents : std::min(maxEvents, totalEvents);
+    
+    std::cout << "Processing " << processEvents << " events..." << std::endl;
+    
+    for (int evt = 0; evt < processEvents; evt++) {
+        if (!dataIO.GetEvent(evt)) continue;
+        if (evt % 1000 == 0) std::cout << "Processing event " << evt << "/" << processEvents << "..." << std::endl;
+        
+        int eventNum = dataIO.GetEventNumber();
+        std::vector<float> trigWave = dataIO.GetWaveform("trigger");
+        std::vector<float> mcpWave = dataIO.GetWaveform("mcp");
+        
+        // Correct waveforms
+        std::vector<float> corrTrig = processor.CorrectWaveform(trigWave);
+        std::vector<float> corrMCP = processor.CorrectWaveform(mcpWave);
+        
+        // Signal validation
+        float amp = analyzer.GetAmplitude(corrMCP, analyzer.m_mcpWindowMin, analyzer.m_mcpWindowMax);
+        float threshold = 4.0 * processor.GetStdDev(corrMCP);
+        bool isSignal = (amp > threshold && processor.ToTCut(corrMCP, analyzer.m_mcpWindowMin, analyzer.m_mcpWindowMax));
+
+        // Waveform analysis
+        if (doWaveform && isSignal) {
+            // FFT filtering
+            std::vector<float> filtered = processor.FFTFilter(corrMCP, analyzer.m_fftCutoffFrequency, eventNum, channelNumber);
+            
+            TH1F* hTrig = new TH1F(Form("Trig_Wave_Evt%d", eventNum), Form("Trigger Waveform - Run %d, Event %d", runNumber, eventNum), 1000, 0, 200.);
+            TH1F* hMCP = new TH1F(Form("MCP_Wave_Evt%d_Ch%d", eventNum, channelNumber), Form("MCP Waveform - Run %d, Event %d, Ch %d", runNumber, eventNum, channelNumber), 1000, 0, 200.); 
+            TH1F* hMCP_filt = new TH1F(Form("MCP_Wave_Evt%d_Ch%d_filtered", eventNum, channelNumber), Form("MCP Waveform (Filtered) - Run %d, Event %d, Ch %d", runNumber, eventNum, channelNumber), 1000, 0, 200.);
+            
+            // Fill histograms
+            for (int i = 0; i < 1000; i++) {
+                hTrig->SetBinContent(i+1, corrTrig[i]);
+                hMCP->SetBinContent(i+1, corrMCP[i]);
+                hMCP_filt->SetBinContent(i+1, filtered[i]);
+            }
+            
+            hMCP->GetYaxis()->SetRangeUser(-100., 50.);
+            hMCP_filt->GetYaxis()->SetRangeUser(-100., 50.);
+            
+            dataIO.SaveHistogram(hTrig, "Waveforms_Trig");
+            dataIO.SaveHistogram(hMCP, "Waveforms_MCP");
+            // dataIO.SaveHistogram(hMCP_filt, "Waveforms_MCP_filtered");
+            
+            delete hTrig;
+            delete hMCP;
+            delete hMCP_filt;
+        }
+
+        // 2D waveform analysis
+        if (doWaveform2D && isSignal) {
+            for (int i = 0; i < 1000; i++) {
+                double time = i * 0.2;
+                hTrig2D->Fill(time, corrTrig[i]);
+                hMCP2D->Fill(time, corrMCP[i]);
+            }
+        }
+
+        // ToT analysis
+        if (doToT && isSignal) {
+            hToT->Fill(amp, processor.GetToT(corrMCP, analyzer.m_mcpWindowMin, analyzer.m_mcpWindowMax));
+        }
+        
+        // Timing analysis
+        if (doTiming && isSignal) {
+            float triggerTime = analyzer.CFDDiscriminator(corrTrig, 0, eventNum, analyzer.m_triggerWindowMin, analyzer.m_triggerWindowMax, analyzer.m_triggerCfdFraction, analyzer.m_triggerCfdDelay, true, true, "CFD_Trig");
+            float mcpTime = analyzer.CFDDiscriminator(corrMCP, channelNumber, eventNum, analyzer.m_mcpWindowMin, analyzer.m_mcpWindowMax, analyzer.m_mcpCfdFraction, analyzer.m_mcpCfdDelay, false, true, "CFD_MCP");
+
+            hTrigTiming->Fill(triggerTime);
+            hMCPTiming->Fill(mcpTime);
+            hDiffTiming->Fill(mcpTime - triggerTime);
+        }
+
+        // Amplitude analysis
+        if (doAmplitude && isSignal) {
+            hAmp->Fill(amp);
+        }
+        
+        // Npe analysis
+        if (doNpe && isSignal) {
+            float npe = analyzer.GetNpe(corrMCP, analyzer.m_mcpWindowMin, analyzer.m_mcpWindowMax);
+            if (npe > threshold) {
+                hNpe->Fill(npe);
+            }
+        }
+    }
+    
+    // Save summary histograms
+    if (doWaveform2D) {
+        dataIO.SaveHistogram(hTrig2D);
+        dataIO.SaveHistogram(hMCP2D);
+        delete hTrig2D;
+        delete hMCP2D;
+    }
+
+    if (doToT) {
+        dataIO.SaveHistogram(hToT);
+        delete hToT;
+    }
+
+    if (doTiming) {
+        dataIO.SaveHistogram(hTrigTiming);
+        dataIO.SaveHistogram(hMCPTiming);
+        dataIO.SaveHistogram(hDiffTiming);
+        
+        delete hTrigTiming;
+        delete hMCPTiming;
+        delete hDiffTiming;
+
+        std::cout << "Timing analysis completed" << std::endl;
+    }
+    
+    if (doAmplitude) {
+        dataIO.SaveHistogram(hAmp);
+        delete hAmp;
+
+        std::cout << "Amplitude analysis completed" << std::endl;
+    }
+    
+    if (doNpe) {
+        dataIO.SaveHistogram(hNpe);
+        delete hNpe;
+
+        std::cout << "Npe analysis completed" << std::endl;
+    }
+    
+    dataIO.CloseInputFile();
+    dataIO.CloseOutputFile();
+    
+    std::cout << "=== Analysis for Run " << runNumber << " completed ===" << std::endl;
+    std::cout << "Results saved to: " << outputFileName << std::endl;
+}
+
+
+int main(int argc, char** argv) {
+    // Default values
+    int runNumber = 101;
+    int channelNumber = 10;
+    int maxEvents = -1;
+    std::string configFile = DEFAULT_CONFIG_FILE;
+    bool processAll = true;
+    bool doWaveform = false;
+    bool doWaveform2D = false;
+    bool doToT = false;
+    bool doTiming = false;
+    bool doAmplitude = false;
+    bool doNpe = false;
+    if (argc > 1) runNumber = atoi(argv[1]);
+    if (argc > 2) channelNumber = atoi(argv[2]);
+    if (argc > 3) maxEvents = atoi(argv[3]);
+    if (argc > 4) configFile = argv[4];
+    if (argc > 5) {
+        std::string mode = argv[5];
+        if (mode == "all") {
+            processAll = true;
+        } else {
+            processAll = false;
+            doWaveform = (mode.find('w') != std::string::npos);
+            doWaveform2D = (mode.find('2') != std::string::npos);
+            doToT = (mode.find('t') != std::string::npos);
+            doTiming = (mode.find('t') != std::string::npos);
+            doAmplitude = (mode.find('a') != std::string::npos);
+            doNpe = (mode.find('n') != std::string::npos);
+        }
+    }
+    
+    analyzer(runNumber, channelNumber, maxEvents, configFile, processAll, doWaveform, doWaveform2D, doToT, doTiming, doAmplitude, doNpe);
+    
+    return 0;
+} 

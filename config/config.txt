@@ -1,0 +1,35 @@
+# HRPPD Analysis Configuration File
+# Each line is written in the format of "parameter_name value"
+# Lines starting with '#' are comments.
+
+# Data paths
+output_path ../output/250609_Angle
+
+# Trigger CFD settings
+trigger_cfd_fraction 0.5
+trigger_cfd_delay 3         # bin
+trigger_window_min 200      # bin
+trigger_window_max 300      # bin
+
+# MCP CFD settings
+mcp_cfd_fraction 0.5
+mcp_cfd_delay 3             # bin
+mcp_window_min 500          # bin
+mcp_window_max 600          # bin
+
+# FFT settings
+fft_cutoff_frequency 7e8    # Hz
+apply_fft_filter false
+
+# Waveform processor settings
+calibration_constant 0.48828125   # ADC to mV conversion constant (exact value of 2000/4096)
+delta_t 200                       # Sampling interval (in picoseconds, ps)
+sampling_rate 5e9                # Sampling rate (Hz)
+
+# Analysis type settings
+do_waveform true
+do_waveform2D true
+do_tot true
+do_timing true
+do_amplitude true
+do_npe true 
