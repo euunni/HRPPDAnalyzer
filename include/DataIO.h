@@ -16,30 +16,24 @@ namespace HRPPD {
         ~DataIO();
         
         // File management
-        bool OpenInputFile(const std::string& fileName, const int channelNumber);
-        bool OpenInputFileByRun(int runNumber, const int channelNumber, bool autoNtuplize = true);
-        bool CreateOutputFile(const std::string& fileName);
-        void CloseInputFile();
-        void CloseOutputFile();
+        bool Load(int runNumber, const int channelNumber, bool autoNtuplize = true);
+        bool SetFile(const std::string& fileName);
+        void Close(const std::string& fileName = "");
         
         // Event data access
         bool GetEvent(int eventIndex);
-        int GetEventNumber() const;
-        int GetTotalEvents() const;
+        int GetEventN() const;
+        int GetEntries() const;
         std::vector<float> GetWaveform(const std::string& type) const;
         
         // Output management
-        void SaveHistogram(TH1* hist, const std::string& dirName = "");
-        void CreateDirectory(const std::string& dirName);
-        
-        // Ntuplizing settings
-        void SetDataPath(const std::string& dataPath);
-        void SetOutputPath(const std::string& outputPath);
-        void SetAutoNtuplize(bool enable);
+        void Save(TH1* hist, const std::string& dirName = "");
+        void SetDir(const std::string& dirName);
+        void SetPath(const std::string& outputPath);
         
     private:
         TFile* inputFile_ = nullptr;
-        TFile* outputFile_ = nullptr;
+        TFile* outputFile_ = nullptr;   
         TTree* tree_ = nullptr;
         
         int eventNum_ = 0;
@@ -47,7 +41,7 @@ namespace HRPPD {
         std::vector<float>* mcpWaveform_ = nullptr;
         int channelNumber_ = 0;
         
-        std::string dataPath_ = "./data";
+        std::string ntuplePath_ = "./data";
         std::string outputPath_ = "./output";
         
         bool autoNtuplize_ = true;

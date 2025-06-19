@@ -3,6 +3,8 @@
 # Lines starting with '#' are comments.
 
 # Data paths
+rawdata_path /u/user/haeun/SE_UserHome/ANL/MCP_Data/Feb2023/HRPPD6
+ntuple_path ../data
 output_path ../output/250609_Angle
 
 # Trigger CFD settings
@@ -24,7 +26,7 @@ apply_fft_filter false
 # Waveform processor settings
 calibration_constant 0.48828125   # ADC to mV conversion constant (exact value of 2000/4096)
 delta_t 200                       # Sampling interval (in picoseconds, ps)
-sampling_rate 5e9                # Sampling rate (Hz)
+sampling_rate 5e9                 # Sampling rate (Hz)
 
 # Analysis type settings
 do_waveform true

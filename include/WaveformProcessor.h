@@ -18,7 +18,7 @@ public:
     ~WaveformProcessor();
     
     // Waveform processing functions
-    std::vector<float> CorrectWaveform(const std::vector<float>& waveform);
+    std::vector<float> Correct(const std::vector<float>& waveform);
     // float GetStdDev(const std::vector<float>& waveform, int start = 0, int end = -1);
     float GetStdDev(const std::vector<float>& waveform);
     std::vector<float> FFTFilter(const std::vector<float>& waveform, 
@@ -27,7 +27,7 @@ public:
     bool ToTCut(const std::vector<float>& waveform, int windowMin, int windowMax);
     
     // Internal utility functions
-    float GetOvershoot(const std::vector<float>& waveform, int windowMin, int windowMax);
+    float GetOverShoot(const std::vector<float>& waveform, int windowMin, int windowMax);
     float GetToT(const std::vector<float>& waveform, int windowMin, int windowMax);
     int GetToTBin(const std::vector<float>& waveform, int windowMin, int windowMax);
     float LowPassFilter(float cutoffFrequency, int order, float inputFreq);

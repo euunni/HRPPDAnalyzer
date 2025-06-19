@@ -1,5 +1,6 @@
 #include "../include/DataIO.h"
 #include "../include/Ntupler.h"
+#include "../include/Config.h"
 #include <iostream>
 #include <sys/stat.h>
 #include <libgen.h>
@@ -10,13 +11,12 @@ namespace HRPPD {
 DataIO::DataIO() : 
     inputFile_(nullptr), outputFile_(nullptr), tree_(nullptr),
     triggerWaveform_(nullptr), mcpWaveform_(nullptr),
-    dataPath_("../data"), outputPath_("../output"),
+    ntuplePath_(CONFIG_NTUPLE_PATH), outputPath_(CONFIG_OUTPUT_PATH),
     autoNtuplize_(true), ntupler_(nullptr) {
 }
 
 DataIO::~DataIO() {
-    CloseInputFile();
-    CloseOutputFile();
+    Close();
     
     if (ntupler_) {
         delete ntupler_;
@@ -24,22 +24,14 @@ DataIO::~DataIO() {
     }
 }
 
-void DataIO::SetDataPath(const std::string& dataPath) {
-    dataPath_ = dataPath;
-}
-
-void DataIO::SetOutputPath(const std::string& outputPath) {
+void DataIO::SetPath(const std::string& outputPath) {
     outputPath_ = outputPath;
 }
 
-void DataIO::SetAutoNtuplize(bool enable) {
-    autoNtuplize_ = enable;
-}
-
-bool DataIO::OpenInputFileByRun(int runNumber, const int channelNumber, bool autoNtuplize) {
-    std::string ntuplePath = Ntupler::GetNtuplePath(runNumber, dataPath_);
+bool DataIO::Load(int runNumber, const int channelNumber, bool autoNtuplize) {
+    std::string ntuplePath = Ntupler::GetPath(runNumber, ntuplePath_);
     
-    bool ntupleExists = Ntupler::CheckNtupleExists(runNumber, dataPath_);
+    bool ntupleExists = Ntupler::Check(runNumber, ntuplePath_);
     if (!ntupleExists && autoNtuplize) {
         std::cout << "Ntuple file does not exist: " << ntuplePath << std::endl;
         std::cout << "Starting automatic ntuplizing..." << std::endl;
@@ -49,9 +41,7 @@ bool DataIO::OpenInputFileByRun(int runNumber, const int channelNumber, bool aut
             ntupler_ = new Ntupler();
         }
         
-        // Ntupler now handles paths internally, we just pass empty strings
-        // to use the default paths in the Ntupler class
-        bool success = ntupler_->ConvertDatToRoot(runNumber, -1);
+        bool success = ntupler_->Convert(runNumber, -1);
         if (!success) {
             std::cerr << "Ntuplizing failed" << std::endl;
             return false;
@@ -63,22 +53,19 @@ bool DataIO::OpenInputFileByRun(int runNumber, const int channelNumber, bool aut
         return false;
     }
     
-    return OpenInputFile(ntuplePath, channelNumber);
-}
-
-bool DataIO::OpenInputFile(const std::string& fileName, const int channelNumber) {
-    CloseInputFile();
+    Close(ntuplePath);
     
-    inputFile_ = TFile::Open(fileName.c_str(), "READ");
+    // Open the ntuple file
+    inputFile_ = TFile::Open(ntuplePath.c_str(), "READ");
     if (!inputFile_ || inputFile_->IsZombie()) {
-        std::cerr << "Error: Failed to open file - " << fileName << std::endl;
+        std::cerr << "Error: Failed to open file - " << ntuplePath << std::endl;
         return false;
     }
     
     tree_ = (TTree*)inputFile_->Get("MCPTree");
     if (!tree_) {
         std::cerr << "Error: Cannot find ntuple tree" << std::endl;
-        CloseInputFile();
+        Close(ntuplePath);
         return false;
     }
     
@@ -101,8 +88,8 @@ bool DataIO::OpenInputFile(const std::string& fileName, const int channelNumber)
     return true;
 }
 
-bool DataIO::CreateOutputFile(const std::string& fileName) {
-    CloseOutputFile();
+bool DataIO::SetFile(const std::string& fileName) {
+    Close(fileName);
     
     size_t slashPos = fileName.find_last_of('/');
     if (slashPos != std::string::npos) {
@@ -119,17 +106,33 @@ bool DataIO::CreateOutputFile(const std::string& fileName) {
     return true;
 }
 
-void DataIO::CloseInputFile() {
-    if (inputFile_) {
+void DataIO::Close(const std::string& fileName) {
+    // If file name is empty, close all files
+    if (fileName.empty()) {
+        if (inputFile_) {
+            inputFile_->Close();
+            delete inputFile_;
+            inputFile_ = nullptr;
+            tree_ = nullptr;
+        }
+        
+        if (outputFile_) {
+            outputFile_->Write();
+            outputFile_->Close();
+            delete outputFile_;
+            outputFile_ = nullptr;
+        }
+        return;
+    }
+    
+    // If file name is given, close only that file
+    if (inputFile_ && fileName == inputFile_->GetName()) {
         inputFile_->Close();
         delete inputFile_;
         inputFile_ = nullptr;
-        tree_ = nullptr; // Tree belongs to file
+        tree_ = nullptr;
     }
-}
-
-void DataIO::CloseOutputFile() {
-    if (outputFile_) {
+    else if (outputFile_ && fileName == outputFile_->GetName()) {
         outputFile_->Write();
         outputFile_->Close();
         delete outputFile_;
@@ -152,11 +155,11 @@ bool DataIO::GetEvent(int eventIndex) {
     return true;
 }
 
-int DataIO::GetEventNumber() const {
+int DataIO::GetEventN() const {
     return eventNum_;
 }
 
-int DataIO::GetTotalEvents() const {
+int DataIO::GetEntries() const {
     return tree_ ? tree_->GetEntries() : 0;
 }
 
@@ -172,7 +175,7 @@ std::vector<float> DataIO::GetWaveform(const std::string& type) const {
     return waveform;
 }
 
-void DataIO::SaveHistogram(TH1* hist, const std::string& dirName) {
+void DataIO::Save(TH1* hist, const std::string& dirName) {
     if (!outputFile_ || !hist) {
         return;
     }
@@ -193,7 +196,7 @@ void DataIO::SaveHistogram(TH1* hist, const std::string& dirName) {
     currentDir->cd();
 }
 
-void DataIO::CreateDirectory(const std::string& dirName) {
+void DataIO::SetDir(const std::string& dirName) {
     if (!outputFile_) {
         return;
     }

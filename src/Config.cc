@@ -6,6 +6,8 @@ namespace HRPPD {
 
 // Initialize configuration variables (default values)
 std::string CONFIG_OUTPUT_PATH = "../output";
+std::string CONFIG_RAWDATA_PATH = "/u/user/haeun/SE_UserHome/ANL/MCP_Data/Feb2023/HRPPD6";
+std::string CONFIG_NTUPLE_PATH = "../data";
 float CONFIG_TRIGGER_CFD_FRACTION = 0.5f;
 int CONFIG_TRIGGER_CFD_DELAY = 3;
 int CONFIG_TRIGGER_WINDOW_MIN = 200;
@@ -27,7 +29,7 @@ bool CONFIG_DO_AMPLITUDE = true;
 bool CONFIG_DO_NPE = true;
 
 // Configuration file loading function
-bool LoadConfig(const std::string& configFile) {
+bool Load(const std::string& configFile) {
     // Open file
     std::ifstream file(configFile);
     if (!file.is_open()) {
@@ -57,6 +59,12 @@ bool LoadConfig(const std::string& configFile) {
             // Path settings
             if (key == "output_path") {
                 CONFIG_OUTPUT_PATH = value;
+            }
+            else if (key == "rawdata_path") {
+                CONFIG_RAWDATA_PATH = value;
+            }
+            else if (key == "ntuple_path") {
+                CONFIG_NTUPLE_PATH = value;
             }
             // Trigger CFD settings
             else if (key == "trigger_cfd_fraction") {

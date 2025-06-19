@@ -34,13 +34,13 @@ EventAnalyzer::EventAnalyzer()
 EventAnalyzer::~EventAnalyzer() {
 }
 
-bool EventAnalyzer::Initialize() {
+bool EventAnalyzer::Init() {
     return true;
 }
 
 // Functions moved from WaveformProcessor
 
-float EventAnalyzer::GetAmplitude(const std::vector<float>& waveform, int windowMin, int windowMax) {
+float EventAnalyzer::GetAmp(const std::vector<float>& waveform, int windowMin, int windowMax) {
     float amp = *std::min_element(waveform.begin() + windowMin, waveform.begin() + windowMax);
     return (abs(amp));
 }
@@ -119,7 +119,7 @@ void EventAnalyzer::VisualizeSpline(TH1D* hcfd, int binLow, int binHigh, TSpline
     }
 }
 
-float EventAnalyzer::CFDDiscriminator(const std::vector<float>& waveform, int channel, int eventNum, 
+float EventAnalyzer::GetCFDTime(const std::vector<float>& waveform, int channel, int eventNum, 
                                     float fitWindowMin, float fitWindowMax, 
                                     float fractionCFD, int delayCFD, 
                                     bool isPositive, bool isVisualize, 

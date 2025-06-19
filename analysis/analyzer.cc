@@ -2,6 +2,7 @@
 #include "../include/WaveformProcessor.h"
 #include "../include/EventAnalyzer.h"
 #include "../include/Config.h"
+#include "../include/Ntupler.h"
 #include <iostream>
 #include <string>
 #include <vector>
@@ -16,26 +17,28 @@
 
 using namespace HRPPD;
 
+
 // Default configuration file path
 const std::string DEFAULT_CONFIG_FILE = "../config/config.txt";
 
 // Common IO setup function
-bool setupIO(DataIO& dataIO, const int runNumber, const int channelNumber, 
+bool Init(DataIO& dataIO, const int runNumber, const int channelNumber, 
              const std::string& outputSuffix, std::string& outputFileName) {
 
     outputFileName = Form("%s/run%d/%s_Run_%d.root", 
                          CONFIG_OUTPUT_PATH.c_str(), runNumber, outputSuffix.c_str(), runNumber);
+
+    dataIO.SetPath(CONFIG_OUTPUT_PATH); 
     
-    dataIO.SetOutputPath(CONFIG_OUTPUT_PATH);
-    
-    if (!dataIO.OpenInputFileByRun(runNumber, channelNumber, true)) {
+    if (!dataIO.Load(runNumber, channelNumber, true)) {
         std::cerr << "Failed to open file: Run " << runNumber << ", Channel " << channelNumber << std::endl;
         return false;
     }
     
-    if (!dataIO.CreateOutputFile(outputFileName)) {
+    if (!dataIO.SetFile(outputFileName)) {
         std::cerr << "Failed to create output file: " << outputFileName << std::endl;
-        dataIO.CloseInputFile();
+        std::string ntuplePath = Ntupler::GetPath(runNumber, CONFIG_NTUPLE_PATH);
+        dataIO.Close(ntuplePath);
         return false;
     }
     
@@ -52,7 +55,7 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
     WaveformProcessor processor;
     EventAnalyzer analyzer;
     
-    if (!LoadConfig(configFile)) {
+    if (!Load(configFile)) {
         std::cerr << "Failed to load config file, proceeding with default values." << std::endl;
     }
     
@@ -90,17 +93,17 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
     std::cout << "=== Starting analysis for Run " << runNumber << ", Ch " << channelNumber << " ===" << std::endl;
     
     std::string outputFileName;
-    if (!setupIO(dataIO, runNumber, channelNumber, "Analysis", outputFileName)) {
+    if (!Init(dataIO, runNumber, channelNumber, "Analysis", outputFileName)) {
         std::cerr << "IO setup failed. Aborting analysis." << std::endl;
         return;
-    }
+    }   
     
     if (doWaveform) {
-        dataIO.CreateDirectory("Waveforms_Trig");
-        dataIO.CreateDirectory("Waveforms_MCP");
-        // dataIO.CreateDirectory("Waveforms_MCP_filtered");
-        dataIO.CreateDirectory("CFD_Trig");
-        dataIO.CreateDirectory("CFD_MCP");
+        dataIO.SetDir("Waveforms_Trig");
+        dataIO.SetDir("Waveforms_MCP");
+        // dataIO.SetDir("Waveforms_MCP_filtered");
+        dataIO.SetDir("CFD_Trig");
+        dataIO.SetDir("CFD_MCP");
     }
     
     // Declare histograms
@@ -134,15 +137,15 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
     
     // Npe histogram
     TH1F* hNpe = nullptr;
-    if (doNpe) {
+    if (doNpe) {    
         hNpe = new TH1F("Npe", "Number of Photoelectrons;Npe;Counts", 1000, 0., 10000000.);
     }
     
-    analyzer.Initialize();
+    analyzer.Init();
     
 
     // Event loop
-    int totalEvents = dataIO.GetTotalEvents();
+    int totalEvents = dataIO.GetEntries();
     int processEvents = (maxEvents < 0) ? totalEvents : std::min(maxEvents, totalEvents);
     
     std::cout << "Processing " << processEvents << " events..." << std::endl;
@@ -151,16 +154,16 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
         if (!dataIO.GetEvent(evt)) continue;
         if (evt % 1000 == 0) std::cout << "Processing event " << evt << "/" << processEvents << "..." << std::endl;
         
-        int eventNum = dataIO.GetEventNumber();
+        int eventNum = dataIO.GetEventN();
         std::vector<float> trigWave = dataIO.GetWaveform("trigger");
         std::vector<float> mcpWave = dataIO.GetWaveform("mcp");
         
         // Correct waveforms
-        std::vector<float> corrTrig = processor.CorrectWaveform(trigWave);
-        std::vector<float> corrMCP = processor.CorrectWaveform(mcpWave);
+        std::vector<float> corrTrig = processor.Correct(trigWave);
+        std::vector<float> corrMCP = processor.Correct(mcpWave);
         
         // Signal validation
-        float amp = analyzer.GetAmplitude(corrMCP, analyzer.m_mcpWindowMin, analyzer.m_mcpWindowMax);
+        float amp = analyzer.GetAmp(corrMCP, analyzer.m_mcpWindowMin, analyzer.m_mcpWindowMax);
         float threshold = 4.0 * processor.GetStdDev(corrMCP);
         bool isSignal = (amp > threshold && processor.ToTCut(corrMCP, analyzer.m_mcpWindowMin, analyzer.m_mcpWindowMax));
 
@@ -183,9 +186,9 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
             hMCP->GetYaxis()->SetRangeUser(-100., 50.);
             hMCP_filt->GetYaxis()->SetRangeUser(-100., 50.);
             
-            dataIO.SaveHistogram(hTrig, "Waveforms_Trig");
-            dataIO.SaveHistogram(hMCP, "Waveforms_MCP");
-            // dataIO.SaveHistogram(hMCP_filt, "Waveforms_MCP_filtered");
+            dataIO.Save(hTrig, "Waveforms_Trig");
+            dataIO.Save(hMCP, "Waveforms_MCP");
+            // dataIO.Save(hMCP_filt, "Waveforms_MCP_filtered");
             
             delete hTrig;
             delete hMCP;
@@ -208,8 +211,8 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
         
         // Timing analysis
         if (doTiming && isSignal) {
-            float triggerTime = analyzer.CFDDiscriminator(corrTrig, 0, eventNum, analyzer.m_triggerWindowMin, analyzer.m_triggerWindowMax, analyzer.m_triggerCfdFraction, analyzer.m_triggerCfdDelay, true, true, "CFD_Trig");
-            float mcpTime = analyzer.CFDDiscriminator(corrMCP, channelNumber, eventNum, analyzer.m_mcpWindowMin, analyzer.m_mcpWindowMax, analyzer.m_mcpCfdFraction, analyzer.m_mcpCfdDelay, false, true, "CFD_MCP");
+            float triggerTime = analyzer.GetCFDTime(corrTrig, 0, eventNum, analyzer.m_triggerWindowMin, analyzer.m_triggerWindowMax, analyzer.m_triggerCfdFraction, analyzer.m_triggerCfdDelay, true, true, "CFD_Trig");
+            float mcpTime = analyzer.GetCFDTime(corrMCP, channelNumber, eventNum, analyzer.m_mcpWindowMin, analyzer.m_mcpWindowMax, analyzer.m_mcpCfdFraction, analyzer.m_mcpCfdDelay, false, true, "CFD_MCP");
 
             hTrigTiming->Fill(triggerTime);
             hMCPTiming->Fill(mcpTime);
@@ -232,21 +235,21 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
     
     // Save summary histograms
     if (doWaveform2D) {
-        dataIO.SaveHistogram(hTrig2D);
-        dataIO.SaveHistogram(hMCP2D);
+        dataIO.Save(hTrig2D);
+        dataIO.Save(hMCP2D);
         delete hTrig2D;
         delete hMCP2D;
     }
 
     if (doToT) {
-        dataIO.SaveHistogram(hToT);
+        dataIO.Save(hToT);
         delete hToT;
     }
 
     if (doTiming) {
-        dataIO.SaveHistogram(hTrigTiming);
-        dataIO.SaveHistogram(hMCPTiming);
-        dataIO.SaveHistogram(hDiffTiming);
+        dataIO.Save(hTrigTiming);
+        dataIO.Save(hMCPTiming);
+        dataIO.Save(hDiffTiming);
         
         delete hTrigTiming;
         delete hMCPTiming;
@@ -256,21 +259,20 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
     }
     
     if (doAmplitude) {
-        dataIO.SaveHistogram(hAmp);
+        dataIO.Save(hAmp);
         delete hAmp;
 
         std::cout << "Amplitude analysis completed" << std::endl;
     }
     
     if (doNpe) {
-        dataIO.SaveHistogram(hNpe);
+        dataIO.Save(hNpe);
         delete hNpe;
 
         std::cout << "Npe analysis completed" << std::endl;
     }
     
-    dataIO.CloseInputFile();
-    dataIO.CloseOutputFile();
+    dataIO.Close();
     
     std::cout << "=== Analysis for Run " << runNumber << " completed ===" << std::endl;
     std::cout << "Results saved to: " << outputFileName << std::endl;

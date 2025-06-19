@@ -13,16 +13,16 @@ namespace HRPPD {
         ~Ntupler();
 
         // Convert .dat file to .root
-        bool ConvertDatToRoot(int runNumber, int numEvents = -1, 
-                             const std::string& dataBasePath = "", 
-                             const std::string& ntuplePath = "");
+        bool Convert(int runNumber, int numEvents = -1, 
+                    const std::string& dataBasePath = "", 
+                    const std::string& ntuplePath = "");
         
         // Utility functions
-        static bool CheckNtupleExists(int runNumber, const std::string& ntuplePath = "");
-        static std::string GetNtuplePath(int runNumber, const std::string& ntuplePath = "");
+        static bool Check(int runNumber, const std::string& ntuplePath = "");
+        static std::string GetPath(int runNumber, const std::string& ntuplePath = "");
         
     private:
-        std::string dataBasePath_;  // Path where .dat files are located
+        std::string rawDataPath_;  // Path where .dat files are located
         std::string ntuplePath_;    // Path to save ntuple files
     };
 }

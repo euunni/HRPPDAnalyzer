@@ -18,17 +18,17 @@ public:
     EventAnalyzer();
     ~EventAnalyzer();
     
-    bool Initialize();
+    bool Init();
     
     // Functions moved from WaveformProcessor
-    float GetAmplitude(const std::vector<float>& waveform, int windowMin, int windowMax);
+    float GetAmp(const std::vector<float>& waveform, int windowMin, int windowMax);
     float GetNpe(const std::vector<float>& waveform, int windowMin, int windowMax);
     
     // Timing analysis functions moved from WaveformProcessor
     TSpline3* CreateCFDSpline(TH1D* hcfd, int binLow, int binHigh, const char* name);
     void VisualizeSpline(TH1D* hcfd, int binLow, int binHigh, TSpline3* spline, 
                        TGraph* pointGraph, TGraph* splineGraph);
-    float CFDDiscriminator(const std::vector<float>& waveform, int channel, int eventNum, 
+    float GetCFDTime(const std::vector<float>& waveform, int channel, int eventNum, 
                          float fitWindowMin, float fitWindowMax, 
                          float fractionCFD, int delayCFD, 
                          bool isPositive, bool isVisualize, 

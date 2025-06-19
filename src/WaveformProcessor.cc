@@ -33,7 +33,7 @@ WaveformProcessor::WaveformProcessor() {
 WaveformProcessor::~WaveformProcessor() {
 }
 
-std::vector<float> WaveformProcessor::CorrectWaveform(const std::vector<float>& waveform) {
+std::vector<float> WaveformProcessor::Correct(const std::vector<float>& waveform) {
     float ped = std::accumulate(waveform.begin(), waveform.begin() + 128, 0.) / 128;
     std::vector<float> corrWave;
     
@@ -57,7 +57,7 @@ float WaveformProcessor::GetStdDev(const std::vector<float>& waveform) {
   return ped;
 }
 
-float WaveformProcessor::GetOvershoot(const std::vector<float>& waveform, int fitWindowMin, int fitWindowMax) {
+float WaveformProcessor::GetOverShoot(const std::vector<float>& waveform, int fitWindowMin, int fitWindowMax) {
     // Direct implementation since GetAmplitude was removed
     float amp = *std::min_element(waveform.begin() + fitWindowMin, waveform.begin() + fitWindowMax);
     auto ampIter = std::min_element(waveform.begin() + fitWindowMin, waveform.begin() + fitWindowMax);

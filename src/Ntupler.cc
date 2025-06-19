@@ -1,4 +1,5 @@
 #include "../include/Ntupler.h"
+#include "../include/Config.h"
 #include <iostream>
 #include <fstream>
 #include <sys/stat.h>
@@ -8,8 +9,8 @@
 namespace HRPPD {
 
 Ntupler::Ntupler() : 
-    dataBasePath_("/u/user/haeun/SE_UserHome/ANL/MCP_Data/Feb2023/HRPPD6"),
-    ntuplePath_("../data") {
+    rawDataPath_(CONFIG_RAWDATA_PATH),
+    ntuplePath_(CONFIG_NTUPLE_PATH) {
     // Create output directory if it doesn't exist
     if (!ntuplePath_.empty()) {
         mkdir(ntuplePath_.c_str(), 0755);
@@ -19,24 +20,24 @@ Ntupler::Ntupler() :
 Ntupler::~Ntupler() {
 }
 
-bool Ntupler::CheckNtupleExists(int runNumber, const std::string& ntuplePath) {
-    std::string ntuplefile = GetNtuplePath(runNumber, ntuplePath);
+bool Ntupler::Check(int runNumber, const std::string& ntuplePath) {
+    std::string ntuplefile = GetPath(runNumber, ntuplePath);
     
     // Check if file exists
     std::ifstream file(ntuplefile);
     return file.good();
-}
+}   
 
-std::string Ntupler::GetNtuplePath(int runNumber, const std::string& ntuplePath) {
-    std::string path = ntuplePath.empty() ? "../data" : ntuplePath;
+std::string Ntupler::GetPath(int runNumber, const std::string& ntuplePath) {
+    std::string path = ntuplePath.empty() ? CONFIG_NTUPLE_PATH : ntuplePath;
     return path + "/MCP_Run_" + std::to_string(runNumber) + "_ntuple.root";
 }
 
-bool Ntupler::ConvertDatToRoot(int runNumber, int numEvents, 
+bool Ntupler::Convert(int runNumber, int numEvents, 
                               const std::string& dataBasePath, 
                               const std::string& ntuplePath) {
     // Update paths if provided as arguments
-    if (!dataBasePath.empty()) dataBasePath_ = dataBasePath;
+    if (!dataBasePath.empty()) rawDataPath_ = dataBasePath;
     if (!ntuplePath.empty()) ntuplePath_ = ntuplePath;
     
     if (!ntuplePath_.empty()) {
@@ -45,13 +46,13 @@ bool Ntupler::ConvertDatToRoot(int runNumber, int numEvents,
     
     std::string runDir;
     if (runNumber < 136) {
-        runDir = dataBasePath_ + "/run" + std::to_string(runNumber);
+        runDir = rawDataPath_ + "/run" + std::to_string(runNumber);
     } else if (runNumber >= 147 && runNumber <= 165) {
-        runDir = dataBasePath_ + "/1.4T Angle scan/run" + std::to_string(runNumber);
+        runDir = rawDataPath_ + "/1.4T Angle scan/run" + std::to_string(runNumber);
     } else {
-        runDir = dataBasePath_ + "/Run after 135/run" + std::to_string(runNumber);
+        runDir = rawDataPath_ + "/Run after 135/run" + std::to_string(runNumber);
     }
-    std::string outputFileName = GetNtuplePath(runNumber, ntuplePath_);
+    std::string outputFileName = GetPath(runNumber, ntuplePath_);
     
     std::cout << "== Ntuplizing Run " << runNumber << " ==" << std::endl;
     std::cout << "Data path: " << runDir << std::endl;

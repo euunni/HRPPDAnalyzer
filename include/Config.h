@@ -11,6 +11,8 @@ namespace HRPPD {
 
 // Global configuration variables
 extern std::string CONFIG_OUTPUT_PATH;
+extern std::string CONFIG_RAWDATA_PATH;     
+extern std::string CONFIG_NTUPLE_PATH;
 
 extern float CONFIG_TRIGGER_CFD_FRACTION;
 extern int CONFIG_TRIGGER_CFD_DELAY;
@@ -37,7 +39,7 @@ extern bool CONFIG_DO_AMPLITUDE;
 extern bool CONFIG_DO_NPE;
 
 // Configuration file loading function
-bool LoadConfig(const std::string& configFile);
+bool Load(const std::string& configFile);
 
 } // namespace HRPPD
 
