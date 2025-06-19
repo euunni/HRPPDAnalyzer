@@ -5,6 +5,10 @@ A modular analysis package for processing High Resolution Pixel Photon Detector 
 ## Build Instructions
 
 ```bash
+# Set ROOT environment.
+# This shell script is executable in KNU server, otherwise you should install ROOT on your machine.
+source envset.sh
+
 # Create build and install directories
 mkdir -p build install
 
