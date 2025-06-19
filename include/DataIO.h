@@ -34,21 +34,21 @@ namespace HRPPD {
         void SetPath(const std::string& outputPath);
         
     private:
-        std::unique_ptr<TFile> inputFile_;
-        std::unique_ptr<TFile> outputFile_;
-        TTree* tree_ = nullptr; 
+        TFile* fInputFile = nullptr;
+        TFile* fOutputFile = nullptr;
+        TTree* fTree = nullptr; 
         
-        int eventNum_ = 0;
-        std::vector<float>* triggerWaveform_ = nullptr;
-        std::vector<float>* mcpWaveform_ = nullptr;
-        int channelNumber_ = 0;
+        int fEventNum = 0;
+        std::vector<float>* fTriggerWaveform = nullptr;
+        std::vector<float>* fMcpWaveform = nullptr;
+        int fChannelNumber = 0;
         
-        std::string ntuplePath_ = "./data";
-        std::string outputPath_ = "./output";
+        std::string fNtuplePath = "./data";
+        std::string fOutputPath = "./output";
         
-        bool autoNtuplize_ = true;
+        bool fAutoNtuplize = true;
         
-        std::unique_ptr<Ntupler> ntupler_;
+        std::unique_ptr<Ntupler> fNtupler;
     };
 }
 

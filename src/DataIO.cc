@@ -11,8 +11,8 @@
 namespace HRPPD {
 
 DataIO::DataIO() : 
-    ntuplePath_(CONFIG_NTUPLE_PATH), outputPath_(CONFIG_OUTPUT_PATH),
-    autoNtuplize_(true) {
+    fNtuplePath(CONFIG_NTUPLE_PATH), fOutputPath(CONFIG_OUTPUT_PATH),
+    fAutoNtuplize(true) {
 }
 
 DataIO::~DataIO() {
@@ -20,23 +20,23 @@ DataIO::~DataIO() {
 }
 
 void DataIO::SetPath(const std::string& outputPath) {
-    outputPath_ = outputPath;
+    fOutputPath = outputPath;
 }
 
 bool DataIO::Load(int runNumber, const int channelNumber, bool autoNtuplize) {
-    std::string ntuplePath = Ntupler::GetPath(runNumber, ntuplePath_);
+    std::string ntuplePath = Ntupler::GetPath(runNumber, fNtuplePath);
     
-    bool ntupleExists = Ntupler::Check(runNumber, ntuplePath_);
+    bool ntupleExists = Ntupler::Check(runNumber, fNtuplePath);
     if (!ntupleExists && autoNtuplize) {
         std::cout << "Ntuple file does not exist: " << ntuplePath << std::endl;
         std::cout << "Starting automatic ntuplizing..." << std::endl;
         
         // Create Ntupler instance if not existing
-        if (!ntupler_) {
-            ntupler_ = std::make_unique<Ntupler>();
+        if (!fNtupler) {
+            fNtupler = std::make_unique<Ntupler>();
         }
         
-        bool success = ntupler_->Convert(runNumber, -1);
+        bool success = fNtupler->Convert(runNumber, -1);
         if (!success) {
             std::cerr << "Ntuplizing failed" << std::endl;
             return false;
@@ -51,30 +51,30 @@ bool DataIO::Load(int runNumber, const int channelNumber, bool autoNtuplize) {
     Close(ntuplePath);
     
     // Open the ntuple file
-    inputFile_.reset(TFile::Open(ntuplePath.c_str(), "READ"));
-    if (!inputFile_ || inputFile_->IsZombie()) {
+    fInputFile = TFile::Open(ntuplePath.c_str(), "READ");
+    if (!fInputFile || fInputFile->IsZombie()) {
         std::cerr << "Error: Failed to open file - " << ntuplePath << std::endl;
         return false;
     }
     
-    tree_ = (TTree*)inputFile_->Get("MCPTree");
-    if (!tree_) {
+    fTree = (TTree*)fInputFile->Get("MCPTree");
+    if (!fTree) {
         std::cerr << "Error: Cannot find ntuple tree" << std::endl;
         Close(ntuplePath);
         return false;
     }
     
-    triggerWaveform_ = nullptr;
-    mcpWaveform_ = nullptr;
-    channelNumber_ = channelNumber;
+    fTriggerWaveform = nullptr;
+    fMcpWaveform = nullptr;
+    fChannelNumber = channelNumber;
     
-    tree_->SetBranchAddress("eventNumber", &eventNum_);
-    tree_->SetBranchAddress("triggerWave", &triggerWaveform_);
+    fTree->SetBranchAddress("eventNumber", &fEventNum);
+    fTree->SetBranchAddress("triggerWave", &fTriggerWaveform);
     
     // Connect MCP channel branch
-    TString mcpBranchName = Form("mcpWave%d", channelNumber_);
-    if (tree_->GetBranch(mcpBranchName)) {
-        tree_->SetBranchAddress(mcpBranchName, &mcpWaveform_);
+    TString mcpBranchName = Form("mcpWave%d", fChannelNumber);
+    if (fTree->GetBranch(mcpBranchName)) {
+        fTree->SetBranchAddress(mcpBranchName, &fMcpWaveform);
     } else {
         std::cerr << "Warning: Branch " << mcpBranchName << " does not exist" << std::endl;
         return false;
@@ -92,8 +92,8 @@ bool DataIO::SetFile(const std::string& fileName) {
         mkdir(dirPath.c_str(), 0755);
     }
     
-    outputFile_.reset(new TFile(fileName.c_str(), "RECREATE"));
-    if (!outputFile_ || outputFile_->IsZombie()) {
+    fOutputFile = new TFile(fileName.c_str(), "RECREATE");
+    if (!fOutputFile || fOutputFile->IsZombie()) {
         std::cerr << "Error: Failed to create output file - " << fileName << std::endl;
         return false;
     }
@@ -104,79 +104,87 @@ bool DataIO::SetFile(const std::string& fileName) {
 void DataIO::Close(const std::string& fileName) {
     // If file name is empty, close all files
     if (fileName.empty()) {
-        if (inputFile_) {
-            tree_ = nullptr; // Tree belongs to file
-            inputFile_.reset();
+        if (fInputFile) {
+            fTree = nullptr; // Tree belongs to file
+            fInputFile->Close();
+            delete fInputFile;
+            fInputFile = nullptr;
         }
         
-        if (outputFile_) {
-            outputFile_->Write();
-            outputFile_.reset();
+        if (fOutputFile) {
+            fOutputFile->Write();
+            fOutputFile->Close();
+            delete fOutputFile;
+            fOutputFile = nullptr;
         }
         return;
     }
     
     // If file name is given, close only that file
-    if (inputFile_ && fileName == inputFile_->GetName()) {
-        tree_ = nullptr; // Tree belongs to file
-        inputFile_.reset();
+    if (fInputFile && fileName == fInputFile->GetName()) {
+        fTree = nullptr; // Tree belongs to file
+        fInputFile->Close();
+        delete fInputFile;
+        fInputFile = nullptr;
     }
-    else if (outputFile_ && fileName == outputFile_->GetName()) {
-        outputFile_->Write();
-        outputFile_.reset();
+    else if (fOutputFile && fileName == fOutputFile->GetName()) {
+        fOutputFile->Write();
+        fOutputFile->Close();
+        delete fOutputFile;
+        fOutputFile = nullptr;
     }
 }
 
 bool DataIO::GetEvent(int eventIndex) {
-    if (!tree_) {
+    if (!fTree) {
         std::cerr << "Error: Tree not loaded" << std::endl;
         return false;
     }
     
-    if (eventIndex < 0 || eventIndex >= tree_->GetEntries()) {
-        std::cerr << "Error: Event index out of range (" << eventIndex << "/" << tree_->GetEntries() << ")" << std::endl;
+    if (eventIndex < 0 || eventIndex >= fTree->GetEntries()) {
+        std::cerr << "Error: Event index out of range (" << eventIndex << "/" << fTree->GetEntries() << ")" << std::endl;
         return false;
     }
     
-    tree_->GetEntry(eventIndex);
+    fTree->GetEntry(eventIndex);
     return true;
 }
 
 int DataIO::GetEventN() const {
-    return eventNum_;
+    return fEventNum;
 }
 
 int DataIO::GetEntries() const {
-    return tree_ ? tree_->GetEntries() : 0;
+    return fTree ? fTree->GetEntries() : 0;
 }
 
 std::vector<float> DataIO::GetWaveform(const std::string& type) const {
     std::vector<float> waveform;
     if (type == "trigger") {
-        waveform = *triggerWaveform_;
+        waveform = *fTriggerWaveform;
     } 
     else if (type == "mcp") {
-        waveform = *mcpWaveform_;
+        waveform = *fMcpWaveform;
     }
     
     return waveform;
 }
 
 void DataIO::Save(TH1* hist, const std::string& dirName) {
-    if (!outputFile_ || !hist) {
+    if (!fOutputFile || !hist) {
         return;
     }
     
     TDirectory* currentDir = gDirectory;
     
     if (!dirName.empty()) {
-        TDirectory* dir = outputFile_->GetDirectory(dirName.c_str());
+        TDirectory* dir = fOutputFile->GetDirectory(dirName.c_str());
         if (!dir) {
-            dir = outputFile_->mkdir(dirName.c_str());
+            dir = fOutputFile->mkdir(dirName.c_str());
         }
         dir->cd();
     } else {
-        outputFile_->cd();
+        fOutputFile->cd();
     }
     
     hist->Write();
@@ -184,12 +192,12 @@ void DataIO::Save(TH1* hist, const std::string& dirName) {
 }
 
 void DataIO::SetDir(const std::string& dirName) {
-    if (!outputFile_) {
+    if (!fOutputFile) {
         return;
     }
     
-    if (!outputFile_->GetDirectory(dirName.c_str())) {
-        outputFile_->mkdir(dirName.c_str());
+    if (!fOutputFile->GetDirectory(dirName.c_str())) {
+        fOutputFile->mkdir(dirName.c_str());
     }
 }
 

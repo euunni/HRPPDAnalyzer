@@ -62,19 +62,19 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
     }
     
     // Set parameters
-    processor.m_calibrationConstant = CONFIG_CALIBRATION_CONSTANT;
-    processor.m_deltaT = CONFIG_DELTA_T;
-    processor.m_samplingRate = CONFIG_SAMPLING_RATE;
-    analyzer.m_triggerCfdFraction = CONFIG_TRIGGER_CFD_FRACTION;
-    analyzer.m_triggerCfdDelay = CONFIG_TRIGGER_CFD_DELAY;
-    analyzer.m_mcpCfdFraction = CONFIG_MCP_CFD_FRACTION;
-    analyzer.m_mcpCfdDelay = CONFIG_MCP_CFD_DELAY;
-    analyzer.m_triggerWindowMin = CONFIG_TRIGGER_WINDOW_MIN;
-    analyzer.m_triggerWindowMax = CONFIG_TRIGGER_WINDOW_MAX;
-    analyzer.m_mcpWindowMin = CONFIG_MCP_WINDOW_MIN;
-    analyzer.m_mcpWindowMax = CONFIG_MCP_WINDOW_MAX;
-    analyzer.m_fftCutoffFrequency = CONFIG_FFT_CUTOFF_FREQUENCY;
-    analyzer.m_applyFFTFilter = CONFIG_APPLY_FFT_FILTER;
+    processor.fCalibrationConstant = CONFIG_CALIBRATION_CONSTANT;
+    processor.fDeltaT = CONFIG_DELTA_T;
+    processor.fSamplingRate = CONFIG_SAMPLING_RATE;
+    analyzer.fTriggerCfdFraction = CONFIG_TRIGGER_CFD_FRACTION;
+    analyzer.fTriggerCfdDelay = CONFIG_TRIGGER_CFD_DELAY;
+    analyzer.fMcpCfdFraction = CONFIG_MCP_CFD_FRACTION;
+    analyzer.fMcpCfdDelay = CONFIG_MCP_CFD_DELAY;
+    analyzer.fTriggerWindowMin = CONFIG_TRIGGER_WINDOW_MIN;
+    analyzer.fTriggerWindowMax = CONFIG_TRIGGER_WINDOW_MAX;
+    analyzer.fMcpWindowMin = CONFIG_MCP_WINDOW_MIN;
+    analyzer.fMcpWindowMax = CONFIG_MCP_WINDOW_MAX;
+    analyzer.fFftCutoffFrequency = CONFIG_FFT_CUTOFF_FREQUENCY;
+    analyzer.fApplyFFTFilter = CONFIG_APPLY_FFT_FILTER;
 
     if (processAll) {
         doWaveform = doWaveform2D = doToT = doTiming = doAmplitude = doNpe = true;
@@ -108,39 +108,39 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
         dataIO.SetDir("CFD_MCP");
     }
     
-    // Declare histograms using smart pointers
-    std::unique_ptr<TH2F> hTrig2D;
-    std::unique_ptr<TH2F> hMCP2D;
+    // Declare histograms using raw pointers
+    TH2F* hTrig2D = nullptr;
+    TH2F* hMCP2D = nullptr;
     if (doWaveform2D) {
-        hTrig2D = std::make_unique<TH2F>("Waveform_2D_Trig", "Trigger Waveforms 2D;Time [ns];Amplitude [mV]", 1000, 0., 200., 4000, -1000., 1000.);
-        hMCP2D = std::make_unique<TH2F>("Waveform_2D_MCP", "MCP Waveforms 2D;Time [ns];Amplitude [mV]", 1000, 0., 200., 4000, -1000., 1000.);
+        hTrig2D = new TH2F("Waveform_2D_Trig", "Trigger Waveforms 2D;Time [ns];Amplitude [mV]", 1000, 0., 200., 4000, -1000., 1000.);
+        hMCP2D = new TH2F("Waveform_2D_MCP", "MCP Waveforms 2D;Time [ns];Amplitude [mV]", 1000, 0., 200., 4000, -1000., 1000.);
     }
 
-    std::unique_ptr<TH2F> hToT;
+    TH2F* hToT = nullptr;
     if (doToT) {
-        hToT = std::make_unique<TH2F>("ToT", "ToT;Amplitude [mV];Time [ps]", 100, 0., 60., 40, 0., 8000.);
+        hToT = new TH2F("ToT", "ToT;Amplitude [mV];Time [ps]", 100, 0., 60., 40, 0., 8000.);
     }
     
     // Timing histograms
-    std::unique_ptr<TH1F> hTrigTiming;
-    std::unique_ptr<TH1F> hMCPTiming;
-    std::unique_ptr<TH1F> hDiffTiming;
+    TH1F* hTrigTiming = nullptr;
+    TH1F* hMCPTiming = nullptr;
+    TH1F* hDiffTiming = nullptr;
     if (doTiming) {
-        hTrigTiming = std::make_unique<TH1F>("Timing_Trig", "Trigger Timing;Time [ps];Counts", 1000, 0., 120000.);
-        hMCPTiming = std::make_unique<TH1F>("Timing_MCP", "MCP Timing;Time [ps];Counts", 1000, 20000., 240000.);
-        hDiffTiming = std::make_unique<TH1F>("Timing_Diff", "Timing Resolution;Time [ps];Counts", 1000, 50000., 80000.);
+        hTrigTiming = new TH1F("Timing_Trig", "Trigger Timing;Time [ps];Counts", 1000, 0., 120000.);
+        hMCPTiming = new TH1F("Timing_MCP", "MCP Timing;Time [ps];Counts", 1000, 20000., 240000.);
+        hDiffTiming = new TH1F("Timing_Diff", "Timing Resolution;Time [ps];Counts", 1000, 50000., 80000.);
     }
     
     // Amplitude histogram
-    std::unique_ptr<TH1F> hAmp;
+    TH1F* hAmp = nullptr;
     if (doAmplitude) {
-        hAmp = std::make_unique<TH1F>("Amplitude", "MCP Amplitude;Amplitude [mV];Counts", 1000, 0., 100.);
+        hAmp = new TH1F("Amplitude", "MCP Amplitude;Amplitude [mV];Counts", 1000, 0., 100.);
     }
     
     // Npe histogram
-    std::unique_ptr<TH1F> hNpe;
+    TH1F* hNpe = nullptr;
     if (doNpe) {    
-        hNpe = std::make_unique<TH1F>("Npe", "Number of Photoelectrons;Npe;Counts", 1000, 0., 10000000.);
+        hNpe = new TH1F("Npe", "Number of Photoelectrons;Npe;Counts", 1000, 0., 10000000.);
     }
     
     analyzer.Init();
@@ -165,14 +165,14 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
         std::vector<float> corrMCP = processor.Correct(mcpWave);
         
         // Signal validation
-        float amp = analyzer.GetAmp(corrMCP, analyzer.m_mcpWindowMin, analyzer.m_mcpWindowMax);
+        float amp = analyzer.GetAmp(corrMCP, analyzer.fMcpWindowMin, analyzer.fMcpWindowMax);
         float threshold = 4.0 * processor.GetStdDev(corrMCP);
-        bool isSignal = (amp > threshold && processor.ToTCut(corrMCP, analyzer.m_mcpWindowMin, analyzer.m_mcpWindowMax));
+        bool isSignal = (amp > threshold && processor.ToTCut(corrMCP, analyzer.fMcpWindowMin, analyzer.fMcpWindowMax));
 
         // Waveform analysis
         if (doWaveform && isSignal) {
             // FFT filtering
-            std::vector<float> filtered = processor.FFTFilter(corrMCP, analyzer.m_fftCutoffFrequency, eventNum, channelNumber);
+            std::vector<float> filtered = processor.FFTFilter(corrMCP, analyzer.fFftCutoffFrequency, eventNum, channelNumber);
             
             TH1F hTrig(Form("Trig_Wave_Evt%d", eventNum), Form("Trigger Waveform - Run %d, Event %d", runNumber, eventNum), 1000, 0, 200.);
             TH1F hMCP(Form("MCP_Wave_Evt%d_Ch%d", eventNum, channelNumber), Form("MCP Waveform - Run %d, Event %d, Ch %d", runNumber, eventNum, channelNumber), 1000, 0, 200.); 
@@ -204,13 +204,13 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
 
         // ToT analysis
         if (doToT && isSignal) {
-            hToT->Fill(amp, processor.GetToT(corrMCP, analyzer.m_mcpWindowMin, analyzer.m_mcpWindowMax));
+            hToT->Fill(amp, processor.GetToT(corrMCP, analyzer.fMcpWindowMin, analyzer.fMcpWindowMax));
         }
         
         // Timing analysis
         if (doTiming && isSignal) {
-            float triggerTime = analyzer.GetCFDTime(corrTrig, 0, eventNum, analyzer.m_triggerWindowMin, analyzer.m_triggerWindowMax, analyzer.m_triggerCfdFraction, analyzer.m_triggerCfdDelay, true, true, "CFD_Trig");
-            float mcpTime = analyzer.GetCFDTime(corrMCP, channelNumber, eventNum, analyzer.m_mcpWindowMin, analyzer.m_mcpWindowMax, analyzer.m_mcpCfdFraction, analyzer.m_mcpCfdDelay, false, true, "CFD_MCP");
+            float triggerTime = analyzer.GetCFDTime(corrTrig, 0, eventNum, analyzer.fTriggerWindowMin, analyzer.fTriggerWindowMax, analyzer.fTriggerCfdFraction, analyzer.fTriggerCfdDelay, true, true, "CFD_Trig");
+            float mcpTime = analyzer.GetCFDTime(corrMCP, channelNumber, eventNum, analyzer.fMcpWindowMin, analyzer.fMcpWindowMax, analyzer.fMcpCfdFraction, analyzer.fMcpCfdDelay, false, true, "CFD_MCP");
 
             hTrigTiming->Fill(triggerTime);
             hMCPTiming->Fill(mcpTime);
@@ -224,7 +224,7 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
         
         // Npe analysis
         if (doNpe && isSignal) {
-            float npe = analyzer.GetNpe(corrMCP, analyzer.m_mcpWindowMin, analyzer.m_mcpWindowMax);
+            float npe = analyzer.GetNpe(corrMCP, analyzer.fMcpWindowMin, analyzer.fMcpWindowMax);
             if (npe > threshold) {
                 hNpe->Fill(npe);
             }
@@ -233,30 +233,30 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
     
     // Save summary histograms
     if (doWaveform2D) {
-        dataIO.Save(hTrig2D.get());
-        dataIO.Save(hMCP2D.get());
+        dataIO.Save(hTrig2D);
+        dataIO.Save(hMCP2D);
     }
 
     if (doToT) {
-        dataIO.Save(hToT.get());
+        dataIO.Save(hToT);
     }
 
     if (doTiming) {
-        dataIO.Save(hTrigTiming.get());
-        dataIO.Save(hMCPTiming.get());
-        dataIO.Save(hDiffTiming.get());
+        dataIO.Save(hTrigTiming);
+        dataIO.Save(hMCPTiming);
+        dataIO.Save(hDiffTiming);
 
         std::cout << "Timing analysis completed" << std::endl;
     }
     
     if (doAmplitude) {
-        dataIO.Save(hAmp.get());
+        dataIO.Save(hAmp);
 
         std::cout << "Amplitude analysis completed" << std::endl;
     }
     
     if (doNpe) {
-        dataIO.Save(hNpe.get());
+        dataIO.Save(hNpe);
 
         std::cout << "Npe analysis completed" << std::endl;
     }
@@ -265,6 +265,9 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
     
     std::cout << "=== Analysis for Run " << runNumber << " completed ===" << std::endl;
     std::cout << "Results saved to: " << outputFileName << std::endl;
+    
+    // ROOT가 TFile이 닫힐 때 히스토그램을 관리하므로 여기서 직접 삭제하지 않음
+    // 히스토그램은 TFile의 소유이므로 TFile이 닫힐 때 자동으로 정리됨
 }
 
 

@@ -25,9 +25,9 @@
 namespace HRPPD {
 
 WaveformProcessor::WaveformProcessor() {
-    m_calibrationConstant = CONFIG_CALIBRATION_CONSTANT;
-    m_deltaT = CONFIG_DELTA_T;
-    m_samplingRate = CONFIG_SAMPLING_RATE;
+    fCalibrationConstant = CONFIG_CALIBRATION_CONSTANT;
+    fDeltaT = CONFIG_DELTA_T;
+    fSamplingRate = CONFIG_SAMPLING_RATE;
 }
 
 WaveformProcessor::~WaveformProcessor() {
@@ -38,7 +38,7 @@ std::vector<float> WaveformProcessor::Correct(const std::vector<float>& waveform
     std::vector<float> corrWave;
     
     for (int i = 0; i < waveform.size(); i++) {
-        corrWave.push_back((waveform[i] - ped) * m_calibrationConstant);
+        corrWave.push_back((waveform[i] - ped) * fCalibrationConstant);
     }
 
     return corrWave;
@@ -82,7 +82,7 @@ int WaveformProcessor::GetToTBin(const std::vector<float>& waveform, int fitWind
 
 float WaveformProcessor::GetToT(const std::vector<float>& waveform, int fitWindowMin, int fitWindowMax) {
     int totBin = GetToTBin(waveform, fitWindowMin, fitWindowMax);
-    float tot = totBin * m_deltaT;
+    float tot = totBin * fDeltaT;
     
     return tot;
 }
@@ -123,7 +123,7 @@ std::vector<float> WaveformProcessor::FFTFilter(const std::vector<float>& wavefo
     hmag = (TH1D*)waveOriginal->FFT(hmag, "MAG");
     hmag->SetName(Form("hmag_%s", uniqueName.Data()));
     hmag->SetTitle("Magnitude of the 1st transform");
-    hmag->GetXaxis()->Set(dimSize, 0, m_samplingRate);
+    hmag->GetXaxis()->Set(dimSize, 0, fSamplingRate);
     hmag->Scale(1./sqrt(dimSize)); //scale to 1/SQRT(n)
 
     TVirtualFFT *fftSignal = TVirtualFFT::GetCurrentTransform();
@@ -138,7 +138,7 @@ std::vector<float> WaveformProcessor::FFTFilter(const std::vector<float>& wavefo
     fftSignal->GetPointsComplex(reFull, imFull);
 
     for (int i = 0; i < dimSize; i++) {
-        f = LowPassFilter(cutoffFrequency, 8, i * m_samplingRate / dimSize);
+        f = LowPassFilter(cutoffFrequency, 8, i * fSamplingRate / dimSize);
 
         if (i < (dimSize / 2)) {
             reFft.push_back(reFull[i]);
@@ -165,7 +165,7 @@ std::vector<float> WaveformProcessor::FFTFilter(const std::vector<float>& wavefo
     hb = TH1::TransformHisto(fftBack,hb,"Re");
     hb->SetTitle("The backward transform result");
     hb->Scale(1.0/dimSize);
-    hb->GetXaxis()->Set(dimSize, 0, dimSize * m_deltaT); //ps
+    hb->GetXaxis()->Set(dimSize, 0, dimSize * fDeltaT); //ps
 
     std::vector<float> waveVecFiltered;
     for(int i = 0; i < dimSize; i++) {

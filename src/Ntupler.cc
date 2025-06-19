@@ -12,11 +12,11 @@
 namespace HRPPD {
 
 Ntupler::Ntupler() : 
-    rawDataPath_(CONFIG_RAWDATA_PATH),
-    ntuplePath_(CONFIG_NTUPLE_PATH) {
+    fRawDataPath(CONFIG_RAWDATA_PATH),
+    fNtuplePath(CONFIG_NTUPLE_PATH) {
     // Create output directory if it doesn't exist
-    if (!ntuplePath_.empty()) {
-        mkdir(ntuplePath_.c_str(), 0755);
+    if (!fNtuplePath.empty()) {
+        mkdir(fNtuplePath.c_str(), 0755);
     }
 }
 
@@ -40,22 +40,22 @@ bool Ntupler::Convert(int runNumber, int numEvents,
                               const std::string& dataBasePath, 
                               const std::string& ntuplePath) {
     // Update paths if provided as arguments
-    if (!dataBasePath.empty()) rawDataPath_ = dataBasePath;
-    if (!ntuplePath.empty()) ntuplePath_ = ntuplePath;
+    if (!dataBasePath.empty()) fRawDataPath = dataBasePath;
+    if (!ntuplePath.empty()) fNtuplePath = ntuplePath;
     
-    if (!ntuplePath_.empty()) {
-        mkdir(ntuplePath_.c_str(), 0755);
+    if (!fNtuplePath.empty()) {
+        mkdir(fNtuplePath.c_str(), 0755);
     }
     
     std::string runDir;
     if (runNumber < 136) {
-        runDir = rawDataPath_ + "/run" + std::to_string(runNumber);
+        runDir = fRawDataPath + "/run" + std::to_string(runNumber);
     } else if (runNumber >= 147 && runNumber <= 165) {
-        runDir = rawDataPath_ + "/1.4T Angle scan/run" + std::to_string(runNumber);
+        runDir = fRawDataPath + "/1.4T Angle scan/run" + std::to_string(runNumber);
     } else {
-        runDir = rawDataPath_ + "/Run after 135/run" + std::to_string(runNumber);
+        runDir = fRawDataPath + "/Run after 135/run" + std::to_string(runNumber);
     }
-    std::string outputFileName = GetPath(runNumber, ntuplePath_);
+    std::string outputFileName = GetPath(runNumber, fNtuplePath);
     
     std::cout << "== Ntuplizing Run " << runNumber << " ==" << std::endl;
     std::cout << "Data path: " << runDir << std::endl;

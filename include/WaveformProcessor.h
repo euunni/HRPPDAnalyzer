@@ -33,9 +33,9 @@ public:
     float LowPassFilter(float cutoffFrequency, int order, float inputFreq);
     
     // Public member variables - directly accessible
-    float m_calibrationConstant;  // Calibration constant
-    float m_deltaT;               // Sampling interval (seconds)
-    float m_samplingRate;         // Sampling rate (Hz)
+    float fCalibrationConstant;  // Calibration constant
+    float fDeltaT;               // Sampling interval (seconds)
+    float fSamplingRate;         // Sampling rate (Hz)
 };
 
 } // namespace HRPPD

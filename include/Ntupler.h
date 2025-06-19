@@ -23,8 +23,8 @@ namespace HRPPD {
         static std::string GetPath(int runNumber, const std::string& ntuplePath = "");
         
     private:
-        std::string rawDataPath_;  // Path where .dat files are located
-        std::string ntuplePath_;    // Path to save ntuple files
+        std::string fRawDataPath;  // Path where .dat files are located
+        std::string fNtuplePath;    // Path to save ntuple files
     };
 }
 

@@ -36,23 +36,23 @@ public:
                          std::string dirName);
     
     // CFD parameters
-    float m_triggerCfdFraction;   // Trigger CFD fraction
-    int m_triggerCfdDelay;        // Trigger CFD delay
-    float m_mcpCfdFraction;       // MCP CFD fraction
-    int m_mcpCfdDelay;            // MCP CFD delay
+    float fTriggerCfdFraction;   // Trigger CFD fraction
+    int fTriggerCfdDelay;        // Trigger CFD delay
+    float fMcpCfdFraction;       // MCP CFD fraction
+    int fMcpCfdDelay;            // MCP CFD delay
     
     // Window ranges
-    int m_triggerWindowMin;       // Trigger window minimum
-    int m_triggerWindowMax;       // Trigger window maximum
-    int m_mcpWindowMin;           // MCP window minimum
-    int m_mcpWindowMax;           // MCP window maximum
+    int fTriggerWindowMin;       // Trigger window minimum
+    int fTriggerWindowMax;       // Trigger window maximum
+    int fMcpWindowMin;           // MCP window minimum
+    int fMcpWindowMax;           // MCP window maximum
     
     // FFT parameters
-    float m_fftCutoffFrequency;   // FFT cutoff frequency
-    bool m_applyFFTFilter;        // Apply FFT filter flag
+    float fFftCutoffFrequency;   // FFT cutoff frequency
+    bool fApplyFFTFilter;        // Apply FFT filter flag
     
     // Waveform processor
-    WaveformProcessor m_processor;
+    WaveformProcessor fProcessor;
 };
 
 } // namespace HRPPD

@@ -21,16 +21,16 @@
 namespace HRPPD {
 
 EventAnalyzer::EventAnalyzer() 
-    : m_triggerCfdFraction(0.5),
-      m_triggerCfdDelay(5),
-      m_mcpCfdFraction(0.5),
-      m_mcpCfdDelay(5),
-      m_triggerWindowMin(500),
-      m_triggerWindowMax(600),
-      m_mcpWindowMin(500),
-      m_mcpWindowMax(600),
-      m_fftCutoffFrequency(0.7e9),
-      m_applyFFTFilter(false) {
+    : fTriggerCfdFraction(0.5),
+      fTriggerCfdDelay(5),
+      fMcpCfdFraction(0.5),
+      fMcpCfdDelay(5),
+      fTriggerWindowMin(500),
+      fTriggerWindowMax(600),
+      fMcpWindowMin(500),
+      fMcpWindowMax(600),
+      fFftCutoffFrequency(0.7e9),
+      fApplyFFTFilter(false) {
 }
 
 EventAnalyzer::~EventAnalyzer() {
@@ -127,7 +127,7 @@ float EventAnalyzer::GetCFDTime(const std::vector<float>& waveform, int channel,
                                     bool isPositive, bool isVisualize, 
                                     std::string dirName) {
     const int dimSize = waveform.size(); // 1024 bins
-    float deltaT = m_processor.m_deltaT; // Access directly from WaveformProcessor
+    float deltaT = fProcessor.fDeltaT; // Access directly from WaveformProcessor
     
     float time = 0;
     char CFDSplineName[100];
