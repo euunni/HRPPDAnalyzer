@@ -16,11 +16,11 @@
 #include <TROOT.h>
 #include <TObject.h>
 #include <TString.h>
-
 #include <numeric>
 #include <iostream>
 #include <algorithm>
 #include <cmath>
+
 
 namespace HRPPD {
 
@@ -58,7 +58,6 @@ float WaveformProcessor::GetStdDev(const std::vector<float>& waveform) {
 }
 
 float WaveformProcessor::GetOverShoot(const std::vector<float>& waveform, int fitWindowMin, int fitWindowMax) {
-    // Direct implementation since GetAmplitude was removed
     float amp = *std::min_element(waveform.begin() + fitWindowMin, waveform.begin() + fitWindowMax);
     auto ampIter = std::min_element(waveform.begin() + fitWindowMin, waveform.begin() + fitWindowMax);
     int ampIdx = std::distance(waveform.begin(), ampIter);

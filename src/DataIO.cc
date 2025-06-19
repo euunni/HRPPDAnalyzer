@@ -1,27 +1,22 @@
 #include "../include/DataIO.h"
 #include "../include/Ntupler.h"
 #include "../include/Config.h"
+
 #include <iostream>
 #include <sys/stat.h>
 #include <libgen.h>
 #include "TString.h"
 
+
 namespace HRPPD {
 
 DataIO::DataIO() : 
-    inputFile_(nullptr), outputFile_(nullptr), tree_(nullptr),
-    triggerWaveform_(nullptr), mcpWaveform_(nullptr),
     ntuplePath_(CONFIG_NTUPLE_PATH), outputPath_(CONFIG_OUTPUT_PATH),
-    autoNtuplize_(true), ntupler_(nullptr) {
+    autoNtuplize_(true) {
 }
 
 DataIO::~DataIO() {
     Close();
-    
-    if (ntupler_) {
-        delete ntupler_;
-        ntupler_ = nullptr;
-    }
 }
 
 void DataIO::SetPath(const std::string& outputPath) {
@@ -38,7 +33,7 @@ bool DataIO::Load(int runNumber, const int channelNumber, bool autoNtuplize) {
         
         // Create Ntupler instance if not existing
         if (!ntupler_) {
-            ntupler_ = new Ntupler();
+            ntupler_ = std::make_unique<Ntupler>();
         }
         
         bool success = ntupler_->Convert(runNumber, -1);
@@ -56,7 +51,7 @@ bool DataIO::Load(int runNumber, const int channelNumber, bool autoNtuplize) {
     Close(ntuplePath);
     
     // Open the ntuple file
-    inputFile_ = TFile::Open(ntuplePath.c_str(), "READ");
+    inputFile_.reset(TFile::Open(ntuplePath.c_str(), "READ"));
     if (!inputFile_ || inputFile_->IsZombie()) {
         std::cerr << "Error: Failed to open file - " << ntuplePath << std::endl;
         return false;
@@ -97,7 +92,7 @@ bool DataIO::SetFile(const std::string& fileName) {
         mkdir(dirPath.c_str(), 0755);
     }
     
-    outputFile_ = new TFile(fileName.c_str(), "RECREATE");
+    outputFile_.reset(new TFile(fileName.c_str(), "RECREATE"));
     if (!outputFile_ || outputFile_->IsZombie()) {
         std::cerr << "Error: Failed to create output file - " << fileName << std::endl;
         return false;
@@ -110,33 +105,25 @@ void DataIO::Close(const std::string& fileName) {
     // If file name is empty, close all files
     if (fileName.empty()) {
         if (inputFile_) {
-            inputFile_->Close();
-            delete inputFile_;
-            inputFile_ = nullptr;
-            tree_ = nullptr;
+            tree_ = nullptr; // Tree belongs to file
+            inputFile_.reset();
         }
         
         if (outputFile_) {
             outputFile_->Write();
-            outputFile_->Close();
-            delete outputFile_;
-            outputFile_ = nullptr;
+            outputFile_.reset();
         }
         return;
     }
     
     // If file name is given, close only that file
     if (inputFile_ && fileName == inputFile_->GetName()) {
-        inputFile_->Close();
-        delete inputFile_;
-        inputFile_ = nullptr;
-        tree_ = nullptr;
+        tree_ = nullptr; // Tree belongs to file
+        inputFile_.reset();
     }
     else if (outputFile_ && fileName == outputFile_->GetName()) {
         outputFile_->Write();
-        outputFile_->Close();
-        delete outputFile_;
-        outputFile_ = nullptr;
+        outputFile_.reset();
     }
 }
 

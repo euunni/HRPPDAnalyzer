@@ -1,15 +1,16 @@
 #ifndef EVENT_ANALYZER_H
 #define EVENT_ANALYZER_H
 
-#include <vector>
-#include <string>
 #include "WaveformProcessor.h"
 
+#include <vector>
+#include <string>
 #include <TH1F.h>
 #include <TDirectory.h>
 #include <TSpline.h>
 #include <TH1D.h>
 #include <TGraph.h>
+
 
 namespace HRPPD {
 

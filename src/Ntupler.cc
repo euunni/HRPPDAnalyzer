@@ -1,10 +1,13 @@
 #include "../include/Ntupler.h"
 #include "../include/Config.h"
+
 #include <iostream>
 #include <fstream>
+#include <memory>
 #include <sys/stat.h>
 #include <libgen.h>
 #include "TString.h"
+
 
 namespace HRPPD {
 
@@ -65,7 +68,7 @@ bool Ntupler::Convert(int runNumber, int numEvents,
         mkdir(dirPath.c_str(), 0755);
     }
     
-    TFile* outFile = new TFile(outputFileName.c_str(), "RECREATE");
+    std::unique_ptr<TFile> outFile(new TFile(outputFileName.c_str(), "RECREATE"));
     if (!outFile || outFile->IsZombie()) {
         std::cerr << "Error: Failed to create output file - " << outputFileName << std::endl;
         return false;
@@ -98,8 +101,6 @@ bool Ntupler::Convert(int runNumber, int numEvents,
     
     if (!trigFile) {
         std::cerr << "Error: Cannot open trigger file - " << triggerFile << std::endl;
-        outFile->Close();
-        delete outFile;
         return false;
     }
     
@@ -180,12 +181,9 @@ bool Ntupler::Convert(int runNumber, int numEvents,
     
     outFile->cd();
     tree->Write();
-    outFile->Close();
     
     std::cout << numEvents << " events processed" << std::endl;
     std::cout << "Output file: " << outputFileName << std::endl;
-    
-    delete outFile;
     
     return true;
 }

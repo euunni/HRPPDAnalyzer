@@ -3,12 +3,14 @@
 #include "../include/EventAnalyzer.h"
 #include "../include/Config.h"
 #include "../include/Ntupler.h"
+
 #include <iostream>
 #include <string>
 #include <vector>
 #include <map>
 #include <fstream>
 #include <sstream>
+#include <memory>
 #include "TH1F.h"
 #include "TH2F.h"
 #include "TString.h"
@@ -106,39 +108,39 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
         dataIO.SetDir("CFD_MCP");
     }
     
-    // Declare histograms
-    TH2F* hTrig2D = nullptr;
-    TH2F* hMCP2D = nullptr;
+    // Declare histograms using smart pointers
+    std::unique_ptr<TH2F> hTrig2D;
+    std::unique_ptr<TH2F> hMCP2D;
     if (doWaveform2D) {
-        hTrig2D = new TH2F("Waveform_2D_Trig", "Trigger Waveforms 2D;Time [ns];Amplitude [mV]", 1000, 0., 200., 4000, -1000., 1000.);
-        hMCP2D = new TH2F("Waveform_2D_MCP", "MCP Waveforms 2D;Time [ns];Amplitude [mV]", 1000, 0., 200., 4000, -1000., 1000.);
+        hTrig2D = std::make_unique<TH2F>("Waveform_2D_Trig", "Trigger Waveforms 2D;Time [ns];Amplitude [mV]", 1000, 0., 200., 4000, -1000., 1000.);
+        hMCP2D = std::make_unique<TH2F>("Waveform_2D_MCP", "MCP Waveforms 2D;Time [ns];Amplitude [mV]", 1000, 0., 200., 4000, -1000., 1000.);
     }
 
-    TH2F* hToT = nullptr;
+    std::unique_ptr<TH2F> hToT;
     if (doToT) {
-        hToT = new TH2F("ToT", "ToT;Amplitude [mV];Time [ps]", 100, 0., 60., 40, 0., 8000.);
+        hToT = std::make_unique<TH2F>("ToT", "ToT;Amplitude [mV];Time [ps]", 100, 0., 60., 40, 0., 8000.);
     }
     
     // Timing histograms
-    TH1F* hTrigTiming = nullptr;
-    TH1F* hMCPTiming = nullptr;
-    TH1F* hDiffTiming = nullptr;
+    std::unique_ptr<TH1F> hTrigTiming;
+    std::unique_ptr<TH1F> hMCPTiming;
+    std::unique_ptr<TH1F> hDiffTiming;
     if (doTiming) {
-        hTrigTiming = new TH1F("Timing_Trig", "Trigger Timing;Time [ps];Counts", 1000, 0., 120000.);
-        hMCPTiming = new TH1F("Timing_MCP", "MCP Timing;Time [ps];Counts", 1000, 20000., 240000.);
-        hDiffTiming = new TH1F("Timing_Diff", "Timing Resolution;Time [ps];Counts", 1000, 50000., 80000.);
+        hTrigTiming = std::make_unique<TH1F>("Timing_Trig", "Trigger Timing;Time [ps];Counts", 1000, 0., 120000.);
+        hMCPTiming = std::make_unique<TH1F>("Timing_MCP", "MCP Timing;Time [ps];Counts", 1000, 20000., 240000.);
+        hDiffTiming = std::make_unique<TH1F>("Timing_Diff", "Timing Resolution;Time [ps];Counts", 1000, 50000., 80000.);
     }
     
     // Amplitude histogram
-    TH1F* hAmp = nullptr;
+    std::unique_ptr<TH1F> hAmp;
     if (doAmplitude) {
-        hAmp = new TH1F("Amplitude", "MCP Amplitude;Amplitude [mV];Counts", 1000, 0., 100.);
+        hAmp = std::make_unique<TH1F>("Amplitude", "MCP Amplitude;Amplitude [mV];Counts", 1000, 0., 100.);
     }
     
     // Npe histogram
-    TH1F* hNpe = nullptr;
+    std::unique_ptr<TH1F> hNpe;
     if (doNpe) {    
-        hNpe = new TH1F("Npe", "Number of Photoelectrons;Npe;Counts", 1000, 0., 10000000.);
+        hNpe = std::make_unique<TH1F>("Npe", "Number of Photoelectrons;Npe;Counts", 1000, 0., 10000000.);
     }
     
     analyzer.Init();
@@ -172,27 +174,23 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
             // FFT filtering
             std::vector<float> filtered = processor.FFTFilter(corrMCP, analyzer.m_fftCutoffFrequency, eventNum, channelNumber);
             
-            TH1F* hTrig = new TH1F(Form("Trig_Wave_Evt%d", eventNum), Form("Trigger Waveform - Run %d, Event %d", runNumber, eventNum), 1000, 0, 200.);
-            TH1F* hMCP = new TH1F(Form("MCP_Wave_Evt%d_Ch%d", eventNum, channelNumber), Form("MCP Waveform - Run %d, Event %d, Ch %d", runNumber, eventNum, channelNumber), 1000, 0, 200.); 
-            TH1F* hMCP_filt = new TH1F(Form("MCP_Wave_Evt%d_Ch%d_filtered", eventNum, channelNumber), Form("MCP Waveform (Filtered) - Run %d, Event %d, Ch %d", runNumber, eventNum, channelNumber), 1000, 0, 200.);
+            TH1F hTrig(Form("Trig_Wave_Evt%d", eventNum), Form("Trigger Waveform - Run %d, Event %d", runNumber, eventNum), 1000, 0, 200.);
+            TH1F hMCP(Form("MCP_Wave_Evt%d_Ch%d", eventNum, channelNumber), Form("MCP Waveform - Run %d, Event %d, Ch %d", runNumber, eventNum, channelNumber), 1000, 0, 200.); 
+            TH1F hMCP_filt(Form("MCP_Wave_Evt%d_Ch%d_filtered", eventNum, channelNumber), Form("MCP Waveform (Filtered) - Run %d, Event %d, Ch %d", runNumber, eventNum, channelNumber), 1000, 0, 200.);
             
             // Fill histograms
             for (int i = 0; i < 1000; i++) {
-                hTrig->SetBinContent(i+1, corrTrig[i]);
-                hMCP->SetBinContent(i+1, corrMCP[i]);
-                hMCP_filt->SetBinContent(i+1, filtered[i]);
+                hTrig.SetBinContent(i+1, corrTrig[i]);
+                hMCP.SetBinContent(i+1, corrMCP[i]);
+                hMCP_filt.SetBinContent(i+1, filtered[i]);
             }
             
-            hMCP->GetYaxis()->SetRangeUser(-100., 50.);
-            hMCP_filt->GetYaxis()->SetRangeUser(-100., 50.);
+            hMCP.GetYaxis()->SetRangeUser(-100., 50.);
+            hMCP_filt.GetYaxis()->SetRangeUser(-100., 50.);
             
-            dataIO.Save(hTrig, "Waveforms_Trig");
-            dataIO.Save(hMCP, "Waveforms_MCP");
-            // dataIO.Save(hMCP_filt, "Waveforms_MCP_filtered");
-            
-            delete hTrig;
-            delete hMCP;
-            delete hMCP_filt;
+            dataIO.Save(&hTrig, "Waveforms_Trig");
+            dataIO.Save(&hMCP, "Waveforms_MCP");
+            // dataIO.Save(&hMCP_filt, "Waveforms_MCP_filtered");
         }
 
         // 2D waveform analysis
@@ -235,39 +233,30 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
     
     // Save summary histograms
     if (doWaveform2D) {
-        dataIO.Save(hTrig2D);
-        dataIO.Save(hMCP2D);
-        delete hTrig2D;
-        delete hMCP2D;
+        dataIO.Save(hTrig2D.get());
+        dataIO.Save(hMCP2D.get());
     }
 
     if (doToT) {
-        dataIO.Save(hToT);
-        delete hToT;
+        dataIO.Save(hToT.get());
     }
 
     if (doTiming) {
-        dataIO.Save(hTrigTiming);
-        dataIO.Save(hMCPTiming);
-        dataIO.Save(hDiffTiming);
-        
-        delete hTrigTiming;
-        delete hMCPTiming;
-        delete hDiffTiming;
+        dataIO.Save(hTrigTiming.get());
+        dataIO.Save(hMCPTiming.get());
+        dataIO.Save(hDiffTiming.get());
 
         std::cout << "Timing analysis completed" << std::endl;
     }
     
     if (doAmplitude) {
-        dataIO.Save(hAmp);
-        delete hAmp;
+        dataIO.Save(hAmp.get());
 
         std::cout << "Amplitude analysis completed" << std::endl;
     }
     
     if (doNpe) {
-        dataIO.Save(hNpe);
-        delete hNpe;
+        dataIO.Save(hNpe.get());
 
         std::cout << "Npe analysis completed" << std::endl;
     }

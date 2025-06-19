@@ -3,9 +3,11 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 #include "TFile.h"
 #include "TTree.h"
 #include "TH1.h"
+
 
 namespace HRPPD {
     class Ntupler;
@@ -32,9 +34,9 @@ namespace HRPPD {
         void SetPath(const std::string& outputPath);
         
     private:
-        TFile* inputFile_ = nullptr;
-        TFile* outputFile_ = nullptr;   
-        TTree* tree_ = nullptr;
+        std::unique_ptr<TFile> inputFile_;
+        std::unique_ptr<TFile> outputFile_;
+        TTree* tree_ = nullptr; 
         
         int eventNum_ = 0;
         std::vector<float>* triggerWaveform_ = nullptr;
@@ -46,7 +48,7 @@ namespace HRPPD {
         
         bool autoNtuplize_ = true;
         
-        Ntupler* ntupler_ = nullptr;
+        std::unique_ptr<Ntupler> ntupler_;
     };
 }
 

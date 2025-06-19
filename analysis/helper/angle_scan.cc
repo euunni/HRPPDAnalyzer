@@ -30,6 +30,7 @@ double getEntries(int run_number) {
 
   return entries;
 }
+
 void angle_scan() {
 
   std::vector<Data> points;
