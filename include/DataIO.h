@@ -24,7 +24,6 @@ namespace HRPPD {
         
         // Event data access
         bool GetEvent(int eventIndex);
-        int GetEventN() const;
         int GetEntries() const;
         std::vector<float> GetWaveform(const std::string& type) const;
         

@@ -155,8 +155,7 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
     for (int evt = 0; evt < processEvents; evt++) {
         if (!dataIO.GetEvent(evt)) continue;
         if (evt % 1000 == 0) std::cout << "Processing event " << evt << "/" << processEvents << "..." << std::endl;
-        
-        int eventNum = dataIO.GetEventN();
+
         std::vector<float> trigWave = dataIO.GetWaveform("trigger");
         std::vector<float> mcpWave = dataIO.GetWaveform("mcp");
         
@@ -172,11 +171,11 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
         // Waveform analysis
         if (doWaveform && isSignal) {
             // FFT filtering
-            std::vector<float> filtered = processor.FFTFilter(corrMCP, analyzer.fFftCutoffFrequency, eventNum, channelNumber);
+            std::vector<float> filtered = processor.FFTFilter(corrMCP, analyzer.fFftCutoffFrequency, evt, channelNumber);
             
-            TH1F hTrig(Form("Trig_Wave_Evt%d", eventNum), Form("Trigger Waveform - Run %d, Event %d", runNumber, eventNum), 1000, 0, 200.);
-            TH1F hMCP(Form("MCP_Wave_Evt%d_Ch%d", eventNum, channelNumber), Form("MCP Waveform - Run %d, Event %d, Ch %d", runNumber, eventNum, channelNumber), 1000, 0, 200.); 
-            TH1F hMCP_filt(Form("MCP_Wave_Evt%d_Ch%d_filtered", eventNum, channelNumber), Form("MCP Waveform (Filtered) - Run %d, Event %d, Ch %d", runNumber, eventNum, channelNumber), 1000, 0, 200.);
+            TH1F hTrig(Form("Trig_Wave_Evt%d", evt), Form("Trigger Waveform - Run %d, Event %d", runNumber, evt), 1000, 0, 200.);
+            TH1F hMCP(Form("MCP_Wave_Evt%d_Ch%d", evt, channelNumber), Form("MCP Waveform - Run %d, Event %d, Ch %d", runNumber, evt, channelNumber), 1000, 0, 200.); 
+            TH1F hMCP_filt(Form("MCP_Wave_Evt%d_Ch%d_filtered", evt, channelNumber), Form("MCP Waveform (Filtered) - Run %d, Event %d, Ch %d", runNumber, evt, channelNumber), 1000, 0, 200.);
             
             // Fill histograms
             for (int i = 0; i < 1000; i++) {
@@ -209,8 +208,8 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
         
         // Timing analysis
         if (doTiming && isSignal) {
-            float triggerTime = analyzer.GetCFDTime(corrTrig, 0, eventNum, analyzer.fTriggerWindowMin, analyzer.fTriggerWindowMax, analyzer.fTriggerCfdFraction, analyzer.fTriggerCfdDelay, true, true, "CFD_Trig");
-            float mcpTime = analyzer.GetCFDTime(corrMCP, channelNumber, eventNum, analyzer.fMcpWindowMin, analyzer.fMcpWindowMax, analyzer.fMcpCfdFraction, analyzer.fMcpCfdDelay, false, true, "CFD_MCP");
+            float triggerTime = analyzer.GetCFDTime(corrTrig, 0, evt, analyzer.fTriggerWindowMin, analyzer.fTriggerWindowMax, analyzer.fTriggerCfdFraction, analyzer.fTriggerCfdDelay, true, true, "CFD_Trig");
+            float mcpTime = analyzer.GetCFDTime(corrMCP, channelNumber, evt, analyzer.fMcpWindowMin, analyzer.fMcpWindowMax, analyzer.fMcpCfdFraction, analyzer.fMcpCfdDelay, false, true, "CFD_MCP");
 
             hTrigTiming->Fill(triggerTime);
             hMCPTiming->Fill(mcpTime);

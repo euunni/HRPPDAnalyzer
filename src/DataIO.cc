@@ -150,10 +150,6 @@ bool DataIO::GetEvent(int eventIndex) {
     return true;
 }
 
-int DataIO::GetEventN() const {
-    return fEventNum;
-}
-
 int DataIO::GetEntries() const {
     return fTree ? fTree->GetEntries() : 0;
 }
