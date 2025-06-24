@@ -265,9 +265,6 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
     
     std::cout << "=== Analysis for Run " << runNumber << " completed ===" << std::endl;
     std::cout << "Results saved to: " << outputFileName << std::endl;
-    
-    // ROOT가 TFile이 닫힐 때 히스토그램을 관리하므로 여기서 직접 삭제하지 않음
-    // 히스토그램은 TFile의 소유이므로 TFile이 닫힐 때 자동으로 정리됨
 }
 
 
