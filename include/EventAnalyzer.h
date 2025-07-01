@@ -24,7 +24,7 @@ public:
     // Functions moved from WaveformProcessor
     float GetAmp(const std::vector<float>& waveform, int windowMin, int windowMax);
     float GetNpe(const std::vector<float>& waveform, int windowMin, int windowMax);
-    
+
     // Timing analysis functions moved from WaveformProcessor
     TSpline3* CreateCFDSpline(TH1D* hcfd, int binLow, int binHigh, const char* name);
     void VisualizeSpline(TH1D* hcfd, int binLow, int binHigh, TSpline3* spline, 
@@ -34,6 +34,7 @@ public:
                          float fractionCFD, int delayCFD, 
                          bool isPositive, bool isVisualize, 
                          std::string dirName);
+    float GetTime(const std::vector<float>& waveform, float fractionCFD, int windowMin, int windowMax);
     
     // CFD parameters
     float fTriggerCfdFraction;   // Trigger CFD fraction

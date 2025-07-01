@@ -4,6 +4,8 @@
 #include <iostream>
 #include <algorithm>
 #include <cmath>
+#include <numeric>
+
 #include <TH1F.h>
 #include <TDirectory.h>
 #include <TSpline.h>
@@ -64,8 +66,6 @@ float EventAnalyzer::GetNpe(const std::vector<float>& waveform, int windowMin, i
     
     return gain;
 }
-
-// Timing analysis functions moved from WaveformProcessor
 
 TSpline3* EventAnalyzer::CreateCFDSpline(TH1D* hcfd, int binLow, int binHigh, const char* name) {
     if (binLow > binHigh) {
@@ -378,6 +378,39 @@ float EventAnalyzer::GetCFDTime(const std::vector<float>& waveform, int channel,
     delete hcfd;
     delete hinv;
     delete fsplinecfd;
+
+    return time;
+}
+
+// Simplified version of GetCFDTime
+float EventAnalyzer::GetTime(const std::vector<float>& waveform, float fractionCFD, int windowMin, int windowMax) {
+
+    float ped = std::accumulate(waveform.begin(), waveform.begin() + 128, 0.) / 128;
+
+    std::vector<float> pedCorrWaveform;
+    for(int idx = 0; idx < waveform.size(); idx++){
+        pedCorrWaveform.emplace_back(ped - (float)waveform.at(idx));
+    }
+
+    float max = *max_element(pedCorrWaveform.begin() + windowMin, pedCorrWaveform.begin() + windowMax);
+    float thr = max * fractionCFD;
+
+    int leadingEdgeBin = -1;
+    for (int idx = windowMin; idx < windowMax; idx++){
+        if (pedCorrWaveform.at(idx) >= thr){
+            leadingEdgeBin = idx;
+            break;
+        }
+    }
+
+    // Interpolation
+    float x0 = (float) (leadingEdgeBin - 1);
+    float x1 = (float) leadingEdgeBin;
+    float y0 = (float) ped - waveform.at(leadingEdgeBin-1);
+    float y1 = (float) ped - waveform.at(leadingEdgeBin);
+
+    float interpolated_bin = (float)(x0 + (thr - y0) * (x1 - x0) / (y1 - y0));
+    float time = interpolated_bin * 200;
 
     return time;
 }

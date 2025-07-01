@@ -140,7 +140,7 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
     // Npe histogram
     TH1F* hNpe = nullptr;
     if (doNpe) {    
-        hNpe = new TH1F("Npe", "Number of Photoelectrons;Npe;Counts", 1000, 0., 10000000.);
+        hNpe = new TH1F("Npe", "Number of Photoelectrons;Npe;Counts", 1000, 0., 15000000.);
     }
     
     analyzer.Init();
@@ -228,36 +228,6 @@ void analyzer(const int runNumber, const int channelNumber = 10, const int maxEv
                 hNpe->Fill(npe);
             }
         }
-    }
-    
-    // Save summary histograms
-    if (doWaveform2D) {
-        dataIO.Save(hTrig2D);
-        dataIO.Save(hMCP2D);
-    }
-
-    if (doToT) {
-        dataIO.Save(hToT);
-    }
-
-    if (doTiming) {
-        dataIO.Save(hTrigTiming);
-        dataIO.Save(hMCPTiming);
-        dataIO.Save(hDiffTiming);
-
-        std::cout << "Timing analysis completed" << std::endl;
-    }
-    
-    if (doAmplitude) {
-        dataIO.Save(hAmp);
-
-        std::cout << "Amplitude analysis completed" << std::endl;
-    }
-    
-    if (doNpe) {
-        dataIO.Save(hNpe);
-
-        std::cout << "Npe analysis completed" << std::endl;
     }
     
     dataIO.Close();

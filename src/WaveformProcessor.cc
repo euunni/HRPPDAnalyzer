@@ -80,6 +80,23 @@ int WaveformProcessor::GetToTBin(const std::vector<float>& waveform, int fitWind
     return totBin;
 }
 
+// int WaveformProcessor::GetToTBin(const std::vector<float>& waveform, int fitWindowMin, int fitWindowMax) {
+//     float threshold = -4.0 * GetStdDev(waveform);
+//     int count = 0;
+//     int consecutive = 0;
+
+//     for (int i = fitWindowMin; i < fitWindowMax; i++) {
+//         if (waveform.at(i) < threshold) {
+//             count++;
+//             consecutive = std::max(consecutive, count);
+//         } else {
+//             count = 0;
+//         }
+//     }
+    
+//     return consecutive;
+// }
+
 float WaveformProcessor::GetToT(const std::vector<float>& waveform, int fitWindowMin, int fitWindowMax) {
     int totBin = GetToTBin(waveform, fitWindowMin, fitWindowMax);
     float tot = totBin * fDeltaT;

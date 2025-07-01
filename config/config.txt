@@ -5,7 +5,7 @@
 # Data paths
 rawdata_path /u/user/haeun/SE_UserHome/ANL/MCP_Data/Feb2023/HRPPD6
 ntuple_path ../data
-output_path ../output/250609_Angle
+output_path ../output/250701_OtherCh
 
 # Trigger CFD settings
 trigger_cfd_fraction 0.5
